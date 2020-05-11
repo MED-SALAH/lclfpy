@@ -7,6 +7,7 @@ from confluent_kafka.serialization import StringDeserializer
 from lclf.schemas.event_schema import EventHeader
 from lclf.utils.utils import toNametuple
 import random
+from cassandra.cluster import Cluster
 
 
 def main(args):
@@ -30,6 +31,10 @@ def main(args):
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
 
+    cluster = Cluster([args.host])
+    session = cluster.connect("datascience")
+
+
     while True:
         try:
             # SIGINT can't be handled when polling, limit timeout to 1 second.
@@ -39,8 +44,41 @@ def main(args):
 
             evt = toNametuple("EventHeader", msg.value())
 
-            if evt is not None:
-                print("evt ==>", evt)
+            query = f"""
+
+            insert into EventHeader (
+                            "eventid" ,
+                            "datetimeref" ,
+                            "nomenclatureev" ,
+                            "canal" , 
+                            "media" ,
+                            "schemaversion",
+                            "headerversion",
+                            "serveur",
+                            "adresseip",
+                            "idtelematique",
+                            "idpersonne")
+
+                            VALUES (
+                            '{evt.eventId}' ,
+                            {evt.dateTimeRef} ,
+                            'test' ,
+                            {evt.canal} , 
+                            {evt.media} ,
+                            '{evt.schemaVersion}',
+                            '{evt.headerVersion}',
+                            '{evt.serveur}',
+                            '',
+                            '',
+                            '')
+
+"""
+
+            #print(f"Query={query}")
+            session.execute(query)
+
+            #if evt is not None:
+                #print("evt ==>", evt)
         except KeyboardInterrupt:
             break
 
@@ -58,5 +96,7 @@ if __name__ == '__main__':
                         help="Topic name")
     parser.add_argument('-g', dest="group", default="example_serde_avro",
                         help="Consumer group")
+    parser.add_argument('-c', dest="host", required=True,
+                        help="Cassandra host")
 
     main(parser.parse_args())
