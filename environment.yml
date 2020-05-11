@@ -1,4 +1,4 @@
-#conda env update -f infra.yaml -p  /BDDF/DS/Indus/envs/infra
+#conda env update -p ./env
 name: lclf
 dependencies:
   - python=3.7.*
