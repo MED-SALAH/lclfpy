@@ -10,3 +10,4 @@ dependencies:
     - httpx
     - python-schema-registry-client
     - cassandra-driver
+    - time

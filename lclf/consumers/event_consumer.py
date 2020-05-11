@@ -8,7 +8,7 @@ from lclf.schemas.event_schema import EventHeader
 from lclf.utils.utils import toNametuple
 import random
 from cassandra.cluster import Cluster
-
+import time
 
 def main(args):
     topic = args.topic
@@ -26,7 +26,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "earliestla"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -38,6 +38,7 @@ def main(args):
     while True:
         try:
             # SIGINT can't be handled when polling, limit timeout to 1 second.
+            start = time.time()
             msg = consumer.poll(1.0)
             if msg is None:
                 continue
@@ -76,9 +77,13 @@ def main(args):
 
             #print(f"Query={query}")
             session.execute(query)
+            elapsed_time = (time.time() - start)
+            print(elapsed_time)
 
-            #if evt is not None:
+            if evt is not None:
                 #print("evt ==>", evt)
+                elapsed_time = (time.time() - start)
+                print(elapsed_time)
         except KeyboardInterrupt:
             break
 
