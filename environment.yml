@@ -6,3 +6,7 @@ dependencies:
     - confluent_kafka
     - requests
     - fastavro
+    - faust
+    - httpx
+    - python-schema-registry-client
+    - cassandra-driver
