@@ -1,14 +1,15 @@
 import argparse
+import random
+import time
 
+from cassandra.cluster import Cluster
 from confluent_kafka import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
-from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
+
+from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema
-from lclf.utils.utils import toNametuple
-import random
-from cassandra.cluster import Cluster
-import time
+
 
 def main(args):
     topic = args.topic
@@ -18,8 +19,7 @@ def main(args):
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
 
-    avro_deserializer = AvroDeserializer(schema_str,
-                                         schema_registry_client)
+    avro_deserializer = AvroDeserializer(schema_str,schema_registry_client)
     string_deserializer = StringDeserializer('utf_8')
 
     consumer_conf = {'bootstrap.servers': args.bootstrap_servers,
@@ -45,9 +45,10 @@ def main(args):
 
             evt =  msg.value()
 
+            print(myFunc())
 
             if evt is not None:
-                print("evt ==>", evt)
+                print("evt ==>", evt["EventBusinessContext"][1])
 
         except KeyboardInterrupt:
             break
