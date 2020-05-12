@@ -38,9 +38,9 @@ def main(args):
     producer = SerializingProducer(producer_conf)
 
     value = {
-            "EventHeader": {"eventId": "ZAHIR1"},
-            "EventBusinessContext":  {"numeroCompteBeneficiaire": "Numero 123T"}
-         }
+            "EventHeader": {"eventId": "ZAHIR"},
+            "EventBusinessContext":  {"grilleIdent": "Numero 123T", "codeRetourServiceMetier": "code 23432543"},
+    }
 
     producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
 

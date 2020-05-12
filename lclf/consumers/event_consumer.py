@@ -45,10 +45,30 @@ def main(args):
 
             evt =  msg.value()
 
-            print(myFunc())
+            # print(myFunc())
+
+            query = f"""
+            insert into event (
+                        "eventid" ,
+                        "eventbc",
+                        "eventcontent"
+                        )
+                        VALUES (%s, %s, %s)
+
+
+                    """
+
+            print(f"Query={query}")
+            # session.execute(query)
+            session.execute(query, (evt["EventHeader"]["eventId"], evt["EventBusinessContext"][0], evt["EventBusinessContext"][1]))
 
             if evt is not None:
-                print("evt ==>", evt["EventBusinessContext"][1])
+                print(evt["EventBusinessContext"][1])
+                # print("evt ==>", evt["EventHeader"]["eventId"])
+                # print("evt ==>", evt["EventBusinessContext"][0])
+                # print("evt ==>", evt["EventBusinessContext"][1])
+
+
 
         except KeyboardInterrupt:
             break

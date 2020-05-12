@@ -24,7 +24,8 @@ EventSchema = """
 				"name" : "CanalnetEventBusinessContext",
 				"doc" : "Schéma pour l'événement 00000008H CANALNET",
 				"fields" : [
-					{"name": "grilleIdent", "type": "string"}
+					{"name": "grilleIdent", "type": "string"},
+					{"name": "codeRetourServiceMetier", "type": "string"}
 			   ]
 			},
 			{
