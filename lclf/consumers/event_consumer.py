@@ -81,9 +81,9 @@ def main(args):
             print(elapsed_time)
 
             if evt is not None:
-                #print("evt ==>", evt)
+                print("evt ==>", evt)
                 elapsed_time = (time.time() - start)
-                print(elapsed_time)
+                print(str(elapsed_time)+",")
         except KeyboardInterrupt:
             break
 
