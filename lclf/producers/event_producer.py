@@ -6,7 +6,7 @@ from confluent_kafka import SerializingProducer
 from confluent_kafka.serialization import StringSerializer
 from confluent_kafka.schema_registry.avro import AvroSerializer
 
-from lclf.schemas.event_schema import EventHeader as EventH
+from lclf.schemas.event_schema import EventHeaderSchema as EventH
 import random
 import time
 

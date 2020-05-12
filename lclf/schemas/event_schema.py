@@ -1,6 +1,6 @@
 
 
-EventHeader = """
+EventHeaderSchema = """
  {
    "type" : "record",
    "namespace": "com.example",

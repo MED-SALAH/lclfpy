@@ -4,7 +4,7 @@ from confluent_kafka import DeserializingConsumer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.schema_registry.avro import AvroDeserializer
 from confluent_kafka.serialization import StringDeserializer
-from lclf.schemas.event_schema import EventHeader
+from lclf.schemas.event_schema_all import EventSchema
 from lclf.utils.utils import toNametuple
 import random
 from cassandra.cluster import Cluster
@@ -13,7 +13,7 @@ import time
 def main(args):
     topic = args.topic
 
-    schema_str = EventHeader
+    schema_str = EventSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
@@ -26,7 +26,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "latest"}
+                     'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -43,47 +43,12 @@ def main(args):
             if msg is None:
                 continue
 
-            evt = toNametuple("EventHeader", msg.value())
+            evt =  msg.value()
 
-            query = f"""
-
-            insert into EventHeader (
-                            "eventid" ,
-                            "datetimeref" ,
-                            "nomenclatureev" ,
-                            "canal" , 
-                            "media" ,
-                            "schemaversion",
-                            "headerversion",
-                            "serveur",
-                            "adresseip",
-                            "idtelematique",
-                            "idpersonne")
-
-                            VALUES (
-                            '{evt.eventId}' ,
-                            {evt.dateTimeRef} ,
-                            'test' ,
-                            {evt.canal} , 
-                            {evt.media} ,
-                            '{evt.schemaVersion}',
-                            '{evt.headerVersion}',
-                            '{evt.serveur}',
-                            '',
-                            '',
-                            '')
-
-"""
-
-            #print(f"Query={query}")
-            session.execute(query)
-            elapsed_time = (time.time() - start)
-            print(elapsed_time)
 
             if evt is not None:
                 print("evt ==>", evt)
-                elapsed_time = (time.time() - start)
-                print(str(elapsed_time)+",")
+
         except KeyboardInterrupt:
             break
 
