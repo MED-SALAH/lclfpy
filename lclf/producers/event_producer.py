@@ -6,7 +6,7 @@ from confluent_kafka import SerializingProducer
 from confluent_kafka.serialization import StringSerializer
 from confluent_kafka.schema_registry.avro import AvroSerializer
 
-from lclf.schemas.event_schema import EventHeader
+from lclf.schemas.event_schema import EventHeader as EventH
 import random
 import time
 
@@ -16,6 +16,12 @@ import time
 #         self.EventHeader = EventHeader()
 #         self.EventBusinessContext = EventBusinessContext()
 
+def delivery_report(err, msg):
+    if err is not None:
+        print("Delivery failed for User record {}: {}".format(msg.key(), err))
+        return
+    print('User record {} successfully produced to {} [{}] at offset {}'.format(
+        msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
 
 class ActeurDeclencheur(object):
@@ -47,14 +53,14 @@ class EventHeader(object):
         # self.acteurDeclencheur = ActeurDeclencheur()
 
 def eventHeader_to_dict(eventHeader, ctx):
-    return dict(eventId=EventHeader.eventId,
-                dateTimeRef=EventHeader.dateTimeRef,
-                nomenclatureEv=EventHeader.nomenclatureEv,
-                canal=EventHeader.canal,
-                media=EventHeader.media,
-                schemaVersion=EventHeader.schemaVersion,
-                headerVersion=EventHeader.headerVersion,
-                serveur=EventHeader.serveur)
+    return dict(eventId=eventHeader.eventId,
+                dateTimeRef=eventHeader.dateTimeRef,
+                nomenclatureEv=eventHeader.nomenclatureEv,
+                canal=eventHeader.canal,
+                media=eventHeader.media,
+                schemaVersion=eventHeader.schemaVersion,
+                headerVersion=eventHeader.headerVersion,
+                serveur=eventHeader.serveur)
 
 class CanalnetEventBusinessContext(object):
 
@@ -107,7 +113,7 @@ class CanalribEventBusinessContext(object):
 
 def main(args):
     topic = args.topic
-    schema_str = EventHeader
+    schema_str = EventH
 
     schema_registry_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(schema_registry_conf)
@@ -128,21 +134,18 @@ def main(args):
 
     while True:
         # Serve on_delivery callbacks from previous calls to produce()
-        producer.poll(0.0)
+        producer.poll(0.2)
         try:
             eventHeader = EventHeader(eventId="iid",
                                       dateTimeRef=9999,
                                       nomenclatureEv="nomclature",
-                                      canal="canal",
-                                      media="media",
+                                      canal=11,
+                                      media=22,
                                       schemaVersion="v1",
                                       headerVersion="hv",
                                       serveur="serveur"
                                       )
-
-
-
-            producer.produce(topic=topic, key=str(uuid4()), value=eventHeader)
+            producer.produce(topic=topic, key=str(uuid4()), value=eventHeader, on_delivery=delivery_report)
         except ValueError:
             print("Invalid input, discarding record...")
             continue
