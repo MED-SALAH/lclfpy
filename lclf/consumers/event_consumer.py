@@ -60,13 +60,16 @@ def main(args):
 
             print(f"Query={query}")
             # session.execute(query)
-            session.execute(query, (evt["EventHeader"]["eventId"], evt["EventBusinessContext"][0], evt["EventBusinessContext"][1]))
+            eventId = evt["EventHeader"]["eventId"]
+            eventBc = evt["EventBusinessContext"][0].partition('example.')[2]
+            eventContent = evt["EventBusinessContext"][1]
+            session.execute(query, (eventId, eventBc, eventContent))
 
             if evt is not None:
                 print(evt["EventBusinessContext"][1])
                 # print("evt ==>", evt["EventHeader"]["eventId"])
                 # print("evt ==>", evt["EventBusinessContext"][0])
-                # print("evt ==>", evt["EventBusinessContext"][1])
+                #print("evt ==>", evt["EventBusinessContext"][0].partition('example.')[2])
 
 
 

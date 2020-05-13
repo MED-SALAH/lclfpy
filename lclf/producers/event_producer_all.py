@@ -38,7 +38,7 @@ def main(args):
     producer = SerializingProducer(producer_conf)
 
     value = {
-            "EventHeader": {"eventId": "ZAHIR"},
+            "EventHeader": {"eventId": "ZAHIRaaa"},
             "EventBusinessContext":  {"grilleIdent": "Numero 123T", "codeRetourServiceMetier": "code 23432543"},
     }
 
