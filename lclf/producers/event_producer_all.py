@@ -37,14 +37,52 @@ def main(args):
 
     producer = SerializingProducer(producer_conf)
 
-    value = {
-            "EventHeader": {"eventId": "ZAHIRaaa"},
-            "EventBusinessContext":  {"grilleIdent": "Numero 123T", "codeRetourServiceMetier": "code 23432543"},
-    }
+    list_type = [{"grilleIdent": "Numero 123T",
+                  "codeRetourServiceMetier": "code 23432543",
+                  "referer": "1qsd",
+                  "browserVersion": "qsdqsd",
+                  "androidUDID": "qsdqsdqsd",
+                  "iosIDFA": "qdqsdqsd",
+                  "appVersion": "qsdqsdqsdqsd",
+                  "idTmx": "qsdqsdqsd"},
+                 {"numeroCompteBeneficiaire": "Numero 123T",
+                  "codePaysResidence": "code 23432543",
+                  "codePaysResidenceIso": "code 23432543",
+                  "adresseBeneficiaire": "code 23432543",
+                  "nomCompletBeneficiaire": "code 23432543",
+                  "idListeBeneficiaire": "code 23432543",
+                  "idBeneficiaire": "code 23432543",
+                  "modeValidation": 34,
+                  "bicBeneficiaire": "code 23432543",
+                  "idTmx": "code 23432543"
+                  }]
+    for i in range(5000):
+        x = random.choice([0, 1])
+        value = {
+            "EventHeader": {"eventId": "ZAHIR" + str(i)},
+            "EventBusinessContext": list_type[x]
+        }
+        print(value)
+        producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
+        producer.flush()
 
-    producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
+    # value = {
+    #         "EventHeader": {"eventId": "ZAHIRaddd"},
+    #         "EventBusinessContext":  {"grilleIdent": "Numero 123T",
+    #               "codeRetourServiceMetier": "code 23432543",
+    #               "referer": "1qsd",
+    #               "browserVersion": "qsdqsd",
+    #               "androidUDID": "qsdqsdqsd",
+    #               "iosIDFA": "qdqsdqsd",
+    #               "appVersion": "qsdqsdqsdqsd",
+    #               "idTmx": "qsdqsdqsd"},
+    # }
+    #
+    # producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
+    #
+    # producer.flush()
 
-    producer.flush()
+
 
 
 

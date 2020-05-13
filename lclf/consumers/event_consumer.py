@@ -9,7 +9,7 @@ from confluent_kafka.serialization import StringDeserializer
 
 from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema
-
+import fastavro
 
 def main(args):
     topic = args.topic
@@ -61,15 +61,22 @@ def main(args):
             print(f"Query={query}")
             # session.execute(query)
             eventId = evt["EventHeader"]["eventId"]
-            eventBc = evt["EventBusinessContext"][0].partition('example.')[2]
+            eventBc = evt["EventBusinessContext"][0].replace("com.example.","")
             eventContent = evt["EventBusinessContext"][1]
-            session.execute(query, (eventId, eventBc, eventContent))
+
+            # if schema_str.fields[1].type[0].name == "CanalribEventBusinessContext":
+            #     return schema_str.fields[1].type[0]
+            # else:
+            #     return schema_str.fields[0].type[1]
+
+            # session.execute(query, (eventId, eventBc, eventContent))
 
             if evt is not None:
-                print(evt["EventBusinessContext"][1])
+                # print(evt["EventBusinessContext"][1])
                 # print("evt ==>", evt["EventHeader"]["eventId"])
                 # print("evt ==>", evt["EventBusinessContext"][0])
-                #print("evt ==>", evt["EventBusinessContext"][0].partition('example.')[2])
+                print(eventBc)
+                # print(EventSchema.fields[1].type[0].name)
 
 
 
