@@ -1,7 +1,6 @@
 
 
-EventSchema = """
- {
+EventSchema = """{
 	"namespace" : "com.example",
 	"type" : "record",
 	"name" : "Event",
@@ -54,5 +53,4 @@ EventSchema = """
 		]
 	}
 	]
-}
-"""
+}"""

@@ -56,7 +56,7 @@ def main(args):
                   "bicBeneficiaire": "code 23432543",
                   "idTmx": "code 23432543"
                   }]
-    for i in range(5000):
+    for i in range(10):
         x = random.choice([0, 1])
         value = {
             "EventHeader": {"eventId": "ZAHIR" + str(i)},

@@ -10,11 +10,21 @@ from confluent_kafka.serialization import StringDeserializer
 from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema
 import fastavro
+import ast
+
+class Datafield(object):
+    def __init__(self, name,value,datatype,isnullable):
+        self.name = name
+        self.value = value
+        self.datatype = datatype
+        self.isnullable = isnullable
 
 def main(args):
     topic = args.topic
 
     schema_str = EventSchema
+    schema_dict = ast.literal_eval(schema_str)
+    # print(schema_dict)
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
@@ -26,13 +36,15 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
 
     cluster = Cluster([args.host])
     session = cluster.connect("datascience")
+
+    cluster.register_user_type('datascience', 'datafield', Datafield)
 
 
     while True:
@@ -58,25 +70,75 @@ def main(args):
 
                     """
 
-            print(f"Query={query}")
+            # print(f"Query={query}")
             # session.execute(query)
             eventId = evt["EventHeader"]["eventId"]
             eventBc = evt["EventBusinessContext"][0].replace("com.example.","")
             eventContent = evt["EventBusinessContext"][1]
 
-            # if schema_str.fields[1].type[0].name == "CanalribEventBusinessContext":
-            #     return schema_str.fields[1].type[0]
-            # else:
-            #     return schema_str.fields[0].type[1]
+            if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
+                # print(schema_dict["fields"][1]["type"][0]["fields"])
+                sch = schema_dict["fields"][1]["type"][0]["fields"]
+                newEventContent = []
+                for i in eventContent:
+                    for j in sch:
+                        if j["name"] == i:
+                            if j["type"] == 'string':
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+                            else:
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"][0],
+                                                                 True
+                                                                 ))
+                # print(len(newEventContent))
+                session.execute(query, (eventId, eventBc, set(newEventContent)))
+            else:
+                sch = schema_dict["fields"][1]["type"][1]["fields"]
+                newEventContent = []
+                for i in eventContent:
+                    for j in sch:
+                        if j["name"] == i:
+                            if j["type"] == 'string':
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+                            elif j["type"] == 'int':
+                                newEventContent.append(Datafield(i,
+                                                                 str(eventContent[i]),
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+
+                            else :
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"][0],
+                                                                 True
+                                                                 ))
+                # print(len(newEventContent))
+                # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
+                session.execute(query, (eventId, eventBc, set(newEventContent)))
+
 
             # session.execute(query, (eventId, eventBc, eventContent))
 
-            if evt is not None:
-                # print(evt["EventBusinessContext"][1])
+            # for i in eventContent:
+            #     print(i, eventContent[i])
+                # newEventContent = newEventContent.append(datafield(i))
+
+
+            # if evt is not None:
+            #     print(evt["EventBusinessContext"][1])
                 # print("evt ==>", evt["EventHeader"]["eventId"])
                 # print("evt ==>", evt["EventBusinessContext"][0])
-                print(eventBc)
-                # print(EventSchema.fields[1].type[0].name)
+                # print(eventBc)
 
 
 
