@@ -11,8 +11,6 @@ import random
 import time
 
 
-
-
 def delivery_report(err, msg):
     if err is not None:
         print("Delivery failed for User record {}: {}".format(msg.key(), err))
@@ -56,10 +54,26 @@ def main(args):
                   "bicBeneficiaire": "code 23432543",
                   "idTmx": "code 23432543"
                   }]
-    for i in range(5000):
+    for i in range(5):
         x = random.choice([0, 1])
+
+        eventHeader = {
+            "eventId": str(uuid4()),
+            "dateTimeRef": 1589364605654,
+            "nomenclatureEv": "Event Header",
+            "canal": 1,
+            "media": 2,
+            "schemaVersion": "v0",
+            "headerVersion": "v2",
+            "serveur": "s1",
+            "acteurDeclencheur": {
+                "adresseIP": "127.0.0.1",
+                "idTelematique": str(uuid4()),
+                "idPersonne": "zahir"
+            }
+        }
         value = {
-            "EventHeader": {"eventId": "ZAHIR" + str(i)},
+            "EventHeader": eventHeader,
             "EventBusinessContext": list_type[x]
         }
         print(value)
@@ -81,9 +95,6 @@ def main(args):
     # producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
     #
     # producer.flush()
-
-
-
 
 
 if __name__ == '__main__':
