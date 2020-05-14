@@ -2245,3 +2245,13 @@ EnrichedEventSchema = """
 }
 """
 
+GET_ENRICHED_DATA_QUERY = """
+SELECT 
+                dateNaissance as "dateNaissance" , 
+                paysResidence as "paysResidence", 
+                paysNaissance as "paysNaissance", 
+                revenusAnnuel as "revenusAnnuel", 
+                csp  
+                FROM person WHERE idPersonne = %s
+"""
+

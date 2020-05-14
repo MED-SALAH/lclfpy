@@ -12,3 +12,4 @@ dependencies:
     - cassandra-driver
     - time
     - avro
+    - aiokafka

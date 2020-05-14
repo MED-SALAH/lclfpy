@@ -12,14 +12,15 @@ from confluent_kafka.serialization import StringDeserializer
 from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema
+from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
 from cassandra.query import dict_factory
+
 
 def delivery_report(err, msg):
     if err is not None:
-        print("Delivery failed for User record {}: {}".format(msg.key(), err))
+        print("Delivery failed for Event {}: {}".format(msg.key(), err))
         return
-    print('User record {} successfully produced to {} [{}] at offset {}'.format(
+    print('Event  {} successfully produced to {} [{}] at offset {}'.format(
         msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
 
@@ -33,7 +34,7 @@ def main(args):
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
 
-    avro_deserializer = AvroDeserializer(schema_str,schema_registry_client)
+    avro_deserializer = AvroDeserializer(schema_str, schema_registry_client)
     string_deserializer = StringDeserializer('utf_8')
 
     avro_serializer = AvroSerializer(schema_enriched_event_str,
@@ -42,7 +43,7 @@ def main(args):
     consumer_conf = {'bootstrap.servers': args.bootstrap_servers,
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
-                     'group.id': args.group+str(random.Random()),
+                     'group.id': args.group + str(random.Random()),
                      'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
@@ -50,13 +51,13 @@ def main(args):
 
     cluster = Cluster([args.host])
     session = cluster.connect("datascience")
+    session.row_factory = dict_factory
 
     producer_conf = {'bootstrap.servers': args.bootstrap_servers,
                      'key.serializer': StringSerializer('utf_8'),
                      'value.serializer': avro_serializer}
 
     producer = SerializingProducer(producer_conf)
-
 
     while True:
         try:
@@ -68,38 +69,22 @@ def main(args):
 
             evt = msg.value()
 
-            # print(myFunc())
-            eventContent = evt["EventBusinessContext"][1]
-
-
             if evt is not None:
-                session.row_factory = dict_factory
-                idpers = evt["EventHeader"]["acteurDeclencheur"]["idPersonne"]
+                row = session.execute((GET_ENRICHED_DATA_QUERY), (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
 
-                rows = session.execute(('SELECT idPersonne, dateNaissance, paysResidence,paysNaissance, revenusAnnuel,'
-                                       'csp FROM person WHERE idpersonne = %s'),(idpers,))
-                if not rows:
-                    print(" no rows")
-                else :
-                    print(rows[0]["idpersonne"])
-                    evt['EnrichedData'] = {
-                        "dateNaissance": rows[0]["datenaissance"],
-                        "paysResidence": rows[0]["paysresidence"],
-                        "paysNaissance": rows[0]["paysnaissance"],
-                        "revenusAnnuel": rows[0]["revenusannuel"],
-                        "csp" : rows[0]["csp"]
-                    }
+                print("row =>", row)
+                if row:
+                    evt['EnrichedData'] = row
+                    evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
 
+                    producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
+                    producer.flush()
 
-                evt['EventBusinessContext'] = eventContent
+                    print("Time spent ", time.time() - start)
 
-                print(f"value=>{evt}")
-                print(f"topic=>{outputtopic}")
-
-                producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
-                producer.flush()
 
         except KeyboardInterrupt:
+
             break
 
     consumer.close()

@@ -54,7 +54,7 @@ def main(args):
                   "bicBeneficiaire": "code 23432543",
                   "idTmx": "code 23432543"
                   }]
-    for i in range(5):
+    while True:
         x = random.choice([0, 1])
 
         eventHeader = {
@@ -79,6 +79,7 @@ def main(args):
         print(value)
         producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
         producer.flush()
+        time.sleep(0.1)
 
 
 if __name__ == '__main__':
