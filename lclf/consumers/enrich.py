@@ -70,7 +70,7 @@ def main(args):
             evt = msg.value()
 
             if evt is not None:
-                row = session.execute((GET_ENRICHED_DATA_QUERY), (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+                row = session.execute(GET_ENRICHED_DATA_QUERY, (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
 
                 print("row =>", row)
                 if row:
