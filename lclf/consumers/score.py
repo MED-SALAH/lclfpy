@@ -90,12 +90,14 @@ def main(args):
                                                                  j["type"],
                                                                  False
                                                                  ))
+                                break
                             else:
                                 newEventContent.append(Datafield(i,
                                                                  eventContent[i],
                                                                  j["type"][0],
                                                                  True
                                                                  ))
+                                break
                 # print(len(newEventContent))
                 session.execute(query, (eventId, eventBc, set(newEventContent)))
             else:
@@ -110,12 +112,14 @@ def main(args):
                                                                  j["type"],
                                                                  False
                                                                  ))
+                                break
                             elif j["type"] == 'int':
                                 newEventContent.append(Datafield(i,
                                                                  str(eventContent[i]),
                                                                  j["type"],
                                                                  False
                                                                  ))
+                                break
 
                             else :
                                 newEventContent.append(Datafield(i,
@@ -123,6 +127,7 @@ def main(args):
                                                                  j["type"][0],
                                                                  True
                                                                  ))
+                                break
                 # print(len(newEventContent))
                 # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
                 session.execute(query, (eventId, eventBc, set(newEventContent)))
