@@ -61,7 +61,7 @@ def main(args):
             # print(myFunc())
 
             query = f"""
-            insert into event (
+            insert into events (
                         "eventid" ,
                         "eventbc",
                         "eventcontent"
