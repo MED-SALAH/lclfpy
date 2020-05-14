@@ -12,6 +12,7 @@ from lclf.schemas.event_schema_all import EventSchema
 import fastavro
 import ast
 
+
 class Datafield(object):
     def __init__(self, name,value,datatype,isnullable):
         self.name = name
@@ -36,7 +37,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "latest"}
+                     'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -125,6 +126,9 @@ def main(args):
                 # print(len(newEventContent))
                 # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
                 session.execute(query, (eventId, eventBc, set(newEventContent)))
+
+            elapsed_time = (time.time() - start)
+            print(elapsed_time)
 
 
             # session.execute(query, (eventId, eventBc, eventContent))

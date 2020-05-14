@@ -17,8 +17,7 @@ EventHeaderSchema = """
  }
 """
 
-EventSchema = """
- {
+EventSchema = """{
   "doc": "fields[1] représente le header de l'evenement, fields[2] représente la partie businessContext",
   "fields": [
     {
@@ -1682,8 +1681,7 @@ EventSchema = """
   "name": "Event",
   "namespace": "com.bnpparibas.dsibddf.event",
   "type": "record"
-}
-"""
+}"""
 
 EnrichedEventSchema = """
 {
@@ -2245,6 +2243,4 @@ EnrichedEventSchema = """
   ]
 }
 """
-
-
 
