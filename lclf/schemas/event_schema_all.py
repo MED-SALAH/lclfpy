@@ -2236,7 +2236,8 @@ EnrichedEventSchema = """
           {"name": "dateNaissance", "type": "string"},
           {"name": "paysResidence", "type": "string"},
           {"name": "paysNaissance", "type": "string"},
-          {"name": "revenusAnnuel", "type": "float"}
+          {"name": "revenusAnnuel", "type": "float"},
+          {"name": "csp", "type": "string"}
         ]
       }
     }

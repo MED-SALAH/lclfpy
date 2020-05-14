@@ -13,7 +13,7 @@ from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema
-
+from cassandra.query import dict_factory
 
 def delivery_report(err, msg):
     if err is not None:
@@ -69,53 +69,34 @@ def main(args):
             evt = msg.value()
 
             # print(myFunc())
-
-            query = f"""
-            insert into event (
-                        "eventid" ,
-                        "eventbc",
-                        "eventcontent"
-                        )
-                        VALUES (%s, %s, %s)
-
-
-                    """
-
-            #print(f"Query={query}")
-            # session.execute(query)
-            eventId = evt["EventHeader"]["eventId"]
-            eventBc = evt["EventBusinessContext"][0].replace("com.example.","")
             eventContent = evt["EventBusinessContext"][1]
 
-            # if schema_str.fields[1].type[0].name == "CanalribEventBusinessContext":
-            #     return schema_str.fields[1].type[0]
-            # else:
-            #     return schema_str.fields[0].type[1]
-
-            # session.execute(query, (eventId, eventBc, eventContent))
 
             if evt is not None:
-                # print(evt["EventBusinessContext"][1])
-                # print("evt ==>", evt["EventHeader"]["eventId"])
-                # print("evt ==>", evt["EventBusinessContext"][0])
-                print(eventBc)
-                # print(EventSchema.fields[1].type[0].name)
+                session.row_factory = dict_factory
+                idpers = evt["EventHeader"]["acteurDeclencheur"]["idPersonne"]
 
-                evt['EnrichedData'] = {
-                    "dateNaissance": "01-01-1988",
-                    "paysResidence": "France",
-                    "paysNaissance": "France",
-                    "revenusAnnuel": 40000.0
-                }
+                rows = session.execute(('SELECT idPersonne, dateNaissance, paysResidence,paysNaissance, revenusAnnuel,'
+                                       'csp FROM person WHERE idpersonne = %s'),(idpers,))
+                if not rows:
+                    print(" no rows")
+                else :
+                    print(rows[0]["idpersonne"])
+                    evt['EnrichedData'] = {
+                        "dateNaissance": rows[0]["datenaissance"],
+                        "paysResidence": rows[0]["paysresidence"],
+                        "paysNaissance": rows[0]["paysnaissance"],
+                        "revenusAnnuel": rows[0]["revenusannuel"],
+                        "csp" : rows[0]["csp"]
+                    }
+
 
                 evt['EventBusinessContext'] = eventContent
 
                 print(f"value=>{evt}")
                 print(f"topic=>{outputtopic}")
 
-                value = {'EventHeader': {'eventId': '6089b468-d80d-429f-8375-e64507a3cb65', 'dateTimeRef': 1589364605654, 'nomenclatureEv': 'Event Header', 'canal': 1, 'media': 2, 'schemaVersion': 'v0', 'headerVersion': 'v2', 'serveur': 's1', 'acteurDeclencheur': {'adresseIP': '127.0.0.1', 'idTelematique': 'fea0d476-0ea8-422d-9a3d-adf112a663b5', 'idPersonne': 'zahir'}}, 'EventBusinessContext': {'grilleIdent': 'Numero 123T', 'codeRetourServiceMetier': 'code 23432543', 'referer': '1qsd', 'browserVersion': 'qsdqsd', 'androidUDID': 'qsdqsdqsd', 'iosIDFA': 'qdqsdqsd', 'appVersion': 'qsdqsdqsdqsd', 'idTmx': 'qsdqsdqsd'}, 'EnrichedData': {'dateNaissance': '01-01-1988', 'paysResidence': 'France', 'paysNaissance': 'France', 'revenusAnnuel': 40000.0}}
-
-                producer.produce(topic=outputtopic, key=str(uuid4()), value=value, on_delivery=delivery_report)
+                producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
                 producer.flush()
 
         except KeyboardInterrupt:
