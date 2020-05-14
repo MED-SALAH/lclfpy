@@ -73,7 +73,6 @@ def main(args):
 
 
             if evt is not None:
-                session.row_factory = dict_factory
                 idpers = evt["EventHeader"]["acteurDeclencheur"]["idPersonne"]
 
                 rows = session.execute(('SELECT idPersonne, dateNaissance, paysResidence,paysNaissance, revenusAnnuel,'
@@ -81,13 +80,13 @@ def main(args):
                 if not rows:
                     print(" no rows")
                 else :
-                    print(rows[0]["idpersonne"])
+                    print(rows.one())
                     evt['EnrichedData'] = {
-                        "dateNaissance": rows[0]["datenaissance"],
-                        "paysResidence": rows[0]["paysresidence"],
-                        "paysNaissance": rows[0]["paysnaissance"],
-                        "revenusAnnuel": rows[0]["revenusannuel"],
-                        "csp" : rows[0]["csp"]
+                        "dateNaissance": rows.one()[1],
+                        "paysResidence": rows.one()[2],
+                        "paysNaissance": rows.one()[3],
+                        "revenusAnnuel": rows.one()[4],
+                        "csp" : rows.one()[5]
                     }
 
 

@@ -189,6 +189,7 @@ def main(args):
                 # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
                 session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
 
+
             elapsed_time = (time.time() - start)
             print(elapsed_time)
         except KeyboardInterrupt:
