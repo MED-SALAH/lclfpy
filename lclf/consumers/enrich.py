@@ -75,7 +75,7 @@ def main(args):
                 print("row =>", row)
                 if row:
                     evt['EnrichedData'] = row
-                    evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                    #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
 
                     producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
                     producer.flush()
