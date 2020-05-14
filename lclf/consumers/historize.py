@@ -87,6 +87,10 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
+    cluster.register_user_type('datascience', 'acteurdeclen', ActeurDeclencheur)
+    cluster.register_user_type('datascience', 'dataheader', EventHeader)
+    cluster.register_user_type('datascience', 'dataenrich', EnrichedData)
+
 
 
     while True:
@@ -104,9 +108,9 @@ def main(args):
             query = f"""
             insert into eventenrich (
                         "eventheader" ,
+                        "enricheddata",
                         "eventbc",
-                        "eventcontent",
-                        "enrichedData"
+                        "eventcontent"
                         )
                         VALUES (%s, %s, %s, %s)
 
@@ -114,9 +118,10 @@ def main(args):
                     """
 
             # print(f"Query={query}")
+            print(evt)
 
             eventId = evt["EventHeader"]["eventId"]
-            eventBc = evt["EventBusinessContext"][0]
+            eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
             acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
@@ -156,7 +161,8 @@ def main(args):
                                                                  True
                                                                  ))
                                 break
-                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
+                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                session.execute(query, (newEventHeader, newEnrichedData, eventBc, set(newEventContent)))
             else:
                 sch = schema_dict["fields"][1]["type"][1]["fields"]
                 newEventContent = []
@@ -186,8 +192,8 @@ def main(args):
                                                                  ))
                                 break
                 # print(len(newEventContent))
-                # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
-                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
+                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                session.execute(query, (newEventHeader, newEnrichedData, eventBc,  set(newEventContent)))
 
 
             elapsed_time = (time.time() - start)
