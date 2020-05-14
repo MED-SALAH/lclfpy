@@ -20,6 +20,23 @@ class Datafield(object):
         self.datatype = datatype
         self.isnullable = isnullable
 
+class EnrichedData(object):
+    def __init__(self,dateNaissance, paysResidence, paysNaissance, revenusAnnuel, csp):
+        self.csp = csp
+        self.revenusAnnuel = revenusAnnuel
+        self.paysNaissance = paysNaissance
+        self.paysResidence = paysResidence
+        self.dateNaissance = dateNaissance
+
+
+
+
+class ActeurDeclencheur(object):
+    def __init__(self,adresseIP = None, idTelematique = None, idPersonne = None):
+        self.adresseIP = adresseIP
+        self.idTelematique = idTelematique
+        self.idPersonne = idPersonne
+
 class EventHeader(object):
 
     def __init__(self,
@@ -85,12 +102,13 @@ def main(args):
             # print(myFunc())
 
             query = f"""
-            insert into event (
+            insert into eventenrich (
                         "eventheader" ,
                         "eventbc",
-                        "eventcontent"
+                        "eventcontent",
+                        "enrichedData"
                         )
-                        VALUES (%s, %s, %s)
+                        VALUES (%s, %s, %s, %s)
 
 
                     """
@@ -101,71 +119,79 @@ def main(args):
             eventBc = evt["EventBusinessContext"][0]
             eventContent = evt["EventBusinessContext"][1]
 
+            acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
 
             eventHeader = evt["EventHeader"]
 
-            newEventHeader = EventHeader(eventHeader[0])
+            enrichedData = evt["EnrichedData"]
 
-            for i in eventHeader:
-                print(i,eventHeader[i])
+            newActeurDeclencheur = ActeurDeclencheur(acteurDeclencheur["adresseIP"],acteurDeclencheur["idTelematique"],
+                                                     acteurDeclencheur["idPersonne"])
+
+            newEventHeader = EventHeader(eventHeader["eventId"],eventHeader["dateTimeRef"],eventHeader["nomenclatureEv"],
+                                         eventHeader["canal"],eventHeader["media"],eventHeader["schemaVersion"],
+                                         eventHeader["headerVersion"],eventHeader["serveur"],newActeurDeclencheur)
+
+            newEnrichedData = EnrichedData(enrichedData["dateNaissance"],enrichedData["paysResidence"],
+                                           enrichedData["paysNaissance"],enrichedData["revenusAnnuel"],
+                                           enrichedData["csp"])
+
+            if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
+                sch = schema_dict["fields"][1]["type"][0]["fields"]
+                newEventContent = []
+                for i in eventContent:
+                    for j in sch:
+                        if j["name"] == i:
+                            if j["type"] == 'string':
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+                                break
+                            else:
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"][0],
+                                                                 True
+                                                                 ))
+                                break
+                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
+            else:
+                sch = schema_dict["fields"][1]["type"][1]["fields"]
+                newEventContent = []
+                for i in eventContent:
+                    for j in sch:
+                        if j["name"] == i:
+                            if j["type"] == 'string':
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+                                break
+                            elif j["type"] == 'int':
+                                newEventContent.append(Datafield(i,
+                                                                 str(eventContent[i]),
+                                                                 j["type"],
+                                                                 False
+                                                                 ))
+                                break
+
+                            else :
+                                newEventContent.append(Datafield(i,
+                                                                 eventContent[i],
+                                                                 j["type"][0],
+                                                                 True
+                                                                 ))
+                                break
+                # print(len(newEventContent))
+                # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
+                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
 
 
-
-            # if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
-            #     sch = schema_dict["fields"][1]["type"][0]["fields"]
-            #     newEventContent = []
-            #     for i in eventContent:
-            #         for j in sch:
-            #             if j["name"] == i:
-            #                 if j["type"] == 'string':
-            #                     newEventContent.append(Datafield(i,
-            #                                                      eventContent[i],
-            #                                                      j["type"],
-            #                                                      False
-            #                                                      ))
-            #                     break
-            #                 else:
-            #                     newEventContent.append(Datafield(i,
-            #                                                      eventContent[i],
-            #                                                      j["type"][0],
-            #                                                      True
-            #                                                      ))
-            #                     break
-            #     session.execute(query, (eventId, eventBc, set(newEventContent)))
-            # else:
-            #     sch = schema_dict["fields"][1]["type"][1]["fields"]
-            #     newEventContent = []
-            #     for i in eventContent:
-            #         for j in sch:
-            #             if j["name"] == i:
-            #                 if j["type"] == 'string':
-            #                     newEventContent.append(Datafield(i,
-            #                                                      eventContent[i],
-            #                                                      j["type"],
-            #                                                      False
-            #                                                      ))
-            #                     break
-            #                 elif j["type"] == 'int':
-            #                     newEventContent.append(Datafield(i,
-            #                                                      str(eventContent[i]),
-            #                                                      j["type"],
-            #                                                      False
-            #                                                      ))
-            #                     break
-            #
-            #                 else :
-            #                     newEventContent.append(Datafield(i,
-            #                                                      eventContent[i],
-            #                                                      j["type"][0],
-            #                                                      True
-            #                                                      ))
-            #                     break
-            #     # print(len(newEventContent))
-            #     # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
-            #     session.execute(query, (eventId, eventBc, set(newEventContent)))
-            #
-            # elapsed_time = (time.time() - start)
-            # print(elapsed_time)
+            elapsed_time = (time.time() - start)
+            print(elapsed_time)
         except KeyboardInterrupt:
             break
 
