@@ -21,44 +21,42 @@ class Datafield(object):
         self.isnullable = isnullable
 
 class EnrichedData(object):
-    def __init__(self,dateNaissance, paysResidence, paysNaissance, revenusAnnuel, csp):
+    def __init__(self,datenaissance, paysresidence, paysnaissance, revenusannuel, csp):
         self.csp = csp
-        self.revenusAnnuel = revenusAnnuel
-        self.paysNaissance = paysNaissance
-        self.paysResidence = paysResidence
-        self.dateNaissance = dateNaissance
-
-
+        self.datenaissance = datenaissance
+        self.paysresidence = paysresidence
+        self.paysnaissance = paysnaissance
+        self.revenusannuel = revenusannuel
 
 
 class ActeurDeclencheur(object):
-    def __init__(self,adresseIP = None, idTelematique = None, idPersonne = None):
-        self.adresseIP = adresseIP
-        self.idTelematique = idTelematique
-        self.idPersonne = idPersonne
+    def __init__(self,adresseip = None, idtelematique = None, idpersonne = None):
+        self.adresseip = adresseip
+        self.idtelematique = idtelematique
+        self.idpersonne = idpersonne
 
 class EventHeader(object):
 
     def __init__(self,
-                 eventId = None,
-                 dateTimeRef = None,
-                 nomenclatureEv = None,
+                 eventid = None,
+                 datetimeref = None,
+                 nomenclatureev = None,
                  canal = None,
                  media = None,
-                 schemaVersion = None,
-                 headerVersion = None,
+                 schemaversion = None,
+                 headerversion = None,
                  serveur = None,
-                 acteurDeclencheur = None
+                 acteurdeclencheur = None
                  ):
-        self.acteurDeclencheur = acteurDeclencheur
+        self.acteurdeclencheur = acteurdeclencheur
         self.serveur = serveur
-        self.headerVersion = headerVersion
-        self.schemaVersion = schemaVersion
+        self.headerversion = headerversion
+        self.schemaversion = schemaversion
         self.media = media
         self.canal = canal
-        self.eventId = eventId
-        self.nomenclatureEv = nomenclatureEv
-        self.dateTimeRef = dateTimeRef
+        self.eventid = eventid
+        self.nomenclatureev = nomenclatureev
+        self.datetimeref = datetimeref
 
 
 def main(args):
