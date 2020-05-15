@@ -21,12 +21,12 @@ class Datafield(object):
         self.isnullable = isnullable
 
 class EnrichedData(object):
-    def __init__(self,dateNaissance, paysResidence, paysNaissance, revenusAnnuel, csp):
+    def __init__(self,dateNaissance, paysresidence, paysNaissance, revenusAnnuel, csp):
         self.csp = csp
-        self.dateNaissance = dateNaissance
-        self.paysResidence = paysResidence
-        self.paysNaissance = paysNaissance
         self.revenusAnnuel = revenusAnnuel
+        self.paysNaissance = paysNaissance
+        self.paysresidence = paysresidence
+        self.dateNaissance = dateNaissance
 
 
 class ActeurDeclencheur(object):
@@ -46,9 +46,9 @@ class EventHeader(object):
                  schemaVersion = None,
                  headerVersion = None,
                  serveur = None,
-                 acteurdeclencheur = None
+                 acteurDeclencheur = None
                  ):
-        self.acteurdeclencheur = acteurdeclencheur
+        self.acteurDeclencheur = acteurDeclencheur
         self.serveur = serveur
         self.headerVersion = headerVersion
         self.schemaVersion = schemaVersion
@@ -85,6 +85,10 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
+    cluster.register_user_type('datascience', 'acteurdeclen', ActeurDeclencheur)
+    cluster.register_user_type('datascience', 'dataheader', EventHeader)
+    cluster.register_user_type('datascience', 'dataenrich', EnrichedData)
+
 
 
     while True:
@@ -101,10 +105,10 @@ def main(args):
 
             query = f"""
             insert into eventenrich (
-                        "eventheader" ,
-                        "eventbc",
-                        "eventcontent",
-                        "enrichedData"
+                        "eventHeader" ,
+                        "enrichedData",
+                        "eventBC",
+                        "eventContent"
                         )
                         VALUES (%s, %s, %s, %s)
 
@@ -112,9 +116,10 @@ def main(args):
                     """
 
             # print(f"Query={query}")
+            print(evt)
 
             eventId = evt["EventHeader"]["eventId"]
-            eventBc = evt["EventBusinessContext"][0]
+            eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
             acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
@@ -154,7 +159,8 @@ def main(args):
                                                                  True
                                                                  ))
                                 break
-                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
+                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                session.execute(query, (newEventHeader, newEnrichedData, eventBc, set(newEventContent)))
             else:
                 sch = schema_dict["fields"][1]["type"][1]["fields"]
                 newEventContent = []
@@ -184,8 +190,8 @@ def main(args):
                                                                  ))
                                 break
                 # print(len(newEventContent))
-                # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
-                session.execute(query, (newEventHeader, eventBc, set(newEventContent), newEnrichedData))
+                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                session.execute(query, (newEventHeader, newEnrichedData, eventBc,  set(newEventContent)))
 
             elapsed_time = (time.time() - start)
             print(elapsed_time)

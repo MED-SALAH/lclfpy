@@ -33,7 +33,7 @@ create table eventenrich(
 "eventHeader" frozen <dataheader> PRIMARY KEY,
 "eventBC" text,
 "eventContent" set<frozen <datafield>>,
-"enrichedData" set<frozen <dataEnrich>>
+"enrichedData" frozen <dataEnrich>
 );
 
 create table EventHeader(
