@@ -1684,17 +1684,13 @@ EventSchema = """{
 }"""
 
 EnrichedEventSchema = """
+
 {
   "namespace" : "com.bnpparibas.dsibddf.event",
   "type" : "record",
   "name" : "EnrichedEvent",
   "doc" : "fields[1] représente le header de l'evenement, fields[2] représente la partie businessContext, fields[3] représente la partie enrichie",
   "fields" : [
-    {"name" : "EventHeader",
-      "type" : {
-        "type" : "record",
-        "name" : "EventHeader",
-        "fields" : [
           {"name": "eventId", "type": "string"},
           {"name": "dateTimeRef",  "type": "long", "logicalType" : "timestamp-millis", "doc" : "Au format Timestamp UNIX"},
           {"name": "nomenclatureEv",  "type": "string", "doc" : "Code Nomenclature de l'événement"},
@@ -1703,20 +1699,14 @@ EnrichedEventSchema = """
           {"name": "schemaVersion",  "type": "string"},
           {"name": "headerVersion",  "type": "string"},
           {"name": "serveur",  "type": "string"},
-          {"name" : "acteurDeclencheur",
-            "type" : {
-              "type" : "record",
-              "name" : "ActeurDeclencheur",
-              "fields" : [
-                {"name": "adresseIP",  "type": "string"},
-                {"name": "idTelematique",  "type": "string"},
-                {"name": "idPersonne",  "type": "string"}
-              ]
-            }
-          }
-        ]
-      }
-    },
+          {"name": "adresseIP",  "type": "string"},
+          {"name": "idTelematique",  "type": "string"},
+          {"name": "idPersonne",  "type": "string"},
+          {"name": "dateNaissance", "type": "string"},
+          {"name": "paysResidence", "type": "string"},
+          {"name": "paysNaissance", "type": "string"},
+          {"name": "revenusAnnuel", "type": "float"},
+          {"name": "csp", "type": "string"},
     {"name" : "EventBusinessContext",
       "type" : [
         {
@@ -2227,32 +2217,10 @@ EnrichedEventSchema = """
           ]
         }
       ]
-    },
-    {"name" : "EnrichedData",
-      "type" : {
-        "type" : "record",
-        "name" : "EnrichedData",
-        "fields" : [
-          {"name": "dateNaissance", "type": "string"},
-          {"name": "paysResidence", "type": "string"},
-          {"name": "paysNaissance", "type": "string"},
-          {"name": "revenusAnnuel", "type": "float"},
-          {"name": "csp", "type": "string"}
-        ]
-      }
     }
   ]
 }
 """
-
-MetricSchema = """{
-           "type" : "record",
-           "name" : "metrics",
-           "fields" : [
-                 {"name": "metricName", "type": "string"},
-                 {"name": "time", "type": "long"}
-            ]
-}"""
 
 GET_ENRICHED_DATA_QUERY = """
 SELECT 

@@ -11,7 +11,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EnrichedEventSchema, MetricSchema
+from lclf.schemas.event_schema_all import EnrichedEventSchema
 import fastavro
 import ast
 
@@ -76,19 +76,19 @@ def main(args):
 
     schema_enriched_event_str = EnrichedEventSchema
     schema_dict = ast.literal_eval(schema_enriched_event_str)
-    schema_metrics = MetricSchema
+#    schema_metrics = MetricSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
     string_deserializer = StringDeserializer('utf_8')
 
-    avro_serializer = AvroSerializer(schema_metrics,
-                                     schema_registry_client)
-    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
-                     'key.serializer': StringSerializer('utf_8'),
-                     'value.serializer': avro_serializer}
-
-    producer = SerializingProducer(producer_conf)
+    # avro_serializer = AvroSerializer(schema_metrics,
+    #                                  schema_registry_client)
+    # producer_conf = {'bootstrap.servers': args.bootstrap_servers,
+    #                  'key.serializer': StringSerializer('utf_8'),
+    #                  'value.serializer': avro_serializer}
+    #
+    # producer = SerializingProducer(producer_conf)
 
 
     avro_deserializer = AvroDeserializer(schema_enriched_event_str,schema_registry_client)
@@ -143,22 +143,22 @@ def main(args):
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
-            acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
-
-            eventHeader = evt["EventHeader"]
-
-            enrichedData = evt["EnrichedData"]
-
-            newActeurDeclencheur = ActeurDeclencheur(acteurDeclencheur["adresseIP"],acteurDeclencheur["idTelematique"],
-                                                     acteurDeclencheur["idPersonne"])
-
-            newEventHeader = EventHeader(eventHeader["eventId"],eventHeader["dateTimeRef"],eventHeader["nomenclatureEv"],
-                                         eventHeader["canal"],eventHeader["media"],eventHeader["schemaVersion"],
-                                         eventHeader["headerVersion"],eventHeader["serveur"],newActeurDeclencheur)
-
-            newEnrichedData = EnrichedData(enrichedData["dateNaissance"],enrichedData["paysResidence"],
-                                           enrichedData["paysNaissance"],enrichedData["revenusAnnuel"],
-                                           enrichedData["csp"])
+            # acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
+            #
+            # eventHeader = evt["EventHeader"]
+            #
+            # enrichedData = evt["EnrichedData"]
+            #
+            # newActeurDeclencheur = ActeurDeclencheur(acteurDeclencheur["adresseIP"],acteurDeclencheur["idTelematique"],
+            #                                          acteurDeclencheur["idPersonne"])
+            #
+            # newEventHeader = EventHeader(eventHeader["eventId"],eventHeader["dateTimeRef"],eventHeader["nomenclatureEv"],
+            #                              eventHeader["canal"],eventHeader["media"],eventHeader["schemaVersion"],
+            #                              eventHeader["headerVersion"],eventHeader["serveur"],newActeurDeclencheur)
+            #
+            # newEnrichedData = EnrichedData(enrichedData["dateNaissance"],enrichedData["paysResidence"],
+            #                                enrichedData["paysNaissance"],enrichedData["revenusAnnuel"],
+            #                                enrichedData["csp"])
 
             if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
                 sch = schema_dict["fields"][1]["type"][0]["fields"]
@@ -180,8 +180,11 @@ def main(args):
                                                                  True
                                                                  ))
                                 break
-                # print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
-                session.execute(query, (newEventHeader, newEnrichedData, eventBc, set(newEventContent)))
+
+                session.execute(query, (evt["eventId"], evt["dateTimeRef"], evt["nomenclatureEv"], evt["canal"], evt["media"],
+                                        evt["schemaVersion"], evt["headerVersion"], evt["serveur"], evt["adresseIP"], evt["idTelematique"],
+                                        evt["idPersonne"], evt["dateNaissance"], evt["paysResidence"], evt["paysNaissance"],
+                                        evt["revenusAnnuel"], evt["csp"], eventBc, set(newEventContent)))
             else:
                 sch = schema_dict["fields"][1]["type"][1]["fields"]
                 newEventContent = []
@@ -212,7 +215,12 @@ def main(args):
                                 break
                 # print(len(newEventContent))
                 # print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
-                session.execute(query, (newEventHeader, newEnrichedData, eventBc,  set(newEventContent)))
+
+                session.execute(query, (evt["eventId"], evt["dateTimeRef"], evt["nomenclatureEv"], evt["canal"], evt["media"],
+                                 evt["schemaVersion"], evt["headerVersion"], evt["serveur"], evt["adresseIP"],
+                                 evt["idTelematique"],evt["idPersonne"], evt["dateNaissance"], evt["paysResidence"],
+                                 evt["paysNaissance"], evt["revenusAnnuel"], evt["csp"], eventBc, set(newEventContent)))
+
 
             elapsed_time = (time.time() - start)
             print(elapsed_time)
@@ -221,8 +229,8 @@ def main(args):
         except KeyboardInterrupt:
             break
 
-        producer.produce(topic=outputtopic, key=str(uuid4()), value={"event",elapsed_time}, on_delivery=delivery_report)
-        producer.flush()
+        #producer.produce(topic=outputtopic, key=str(uuid4()), value={"event",elapsed_time}, on_delivery=delivery_report)
+        #producer.flush()
 
     consumer.close()
 

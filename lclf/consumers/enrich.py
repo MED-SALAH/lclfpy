@@ -69,15 +69,38 @@ def main(args):
 
             evt = msg.value()
 
+
+
             if evt is not None:
+                print("récupérer dans kafka")
                 row = session.execute(GET_ENRICHED_DATA_QUERY, (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
 
                 print("row =>", row)
                 if row:
                     evt['EnrichedData'] = row
                     #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                    EnrichedEvent = {
+                        "eventId": evt["EventHeader"]["eventId"],
+                        "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
+                        "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
+                        "canal": evt["EventHeader"]["canal"],
+                        "media": evt["EventHeader"]["media"],
+                        "schemaVersion": evt["EventHeader"]["schemaVersion"],
+                        "headerVersion": evt["EventHeader"]["headerVersion"],
+                        "serveur": evt["EventHeader"]["serveur"],
+                        "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
+                        "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
+                        "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
+                         "dateNaissance" : row["dateNaissance"],
+                         "paysResidence": row["paysResidence"],
+                         "paysNaissance": row["paysNaissance"],
+                         "revenusAnnuel" : row["revenusAnnuel"],
+                         "csp": row["csp"],
+                         "EventBusinessContext": evt["EventBusinessContext"]
+                    }
+                    print("donnée reçu ====>>>>",EnrichedEvent)
 
-                    producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
+                    producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent, on_delivery=delivery_report)
                     producer.flush()
 
                     print("Time spent ", time.time() - start)
