@@ -2245,6 +2245,15 @@ EnrichedEventSchema = """
 }
 """
 
+MetricSchema = """{
+           "type" : "record",
+           "name" : "metrics",
+           "fields" : [
+                 {"name": "metricName", "type": "string"},
+                 {"name": "time", "type": "long"}
+            ]
+}"""
+
 GET_ENRICHED_DATA_QUERY = """
 SELECT 
                 dateNaissance as "dateNaissance" , 

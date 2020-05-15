@@ -4,13 +4,24 @@ import time
 
 from cassandra.cluster import Cluster
 from confluent_kafka import DeserializingConsumer
+from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
 from confluent_kafka.serialization import StringDeserializer
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EnrichedEventSchema
+from lclf.schemas.event_schema_all import EnrichedEventSchema, MetricSchema
 import fastavro
 import ast
+
+
+def delivery_report(err, msg):
+    if err is not None:
+        print("Delivery failed for Event {}: {}".format(msg.key(), err))
+        return
+    print('Event  {} successfully produced to {} [{}] at offset {}'.format(
+        msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
 
 class Datafield(object):
@@ -61,16 +72,26 @@ class EventHeader(object):
 
 def main(args):
     topic = args.topic
+    outputtopic = args.outputtopic
 
     schema_enriched_event_str = EnrichedEventSchema
     schema_dict = ast.literal_eval(schema_enriched_event_str)
-    # print(schema_dict)
+    schema_metrics = MetricSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
+    string_deserializer = StringDeserializer('utf_8')
+
+    avro_serializer = AvroSerializer(schema_metrics,
+                                     schema_registry_client)
+    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
+                     'key.serializer': StringSerializer('utf_8'),
+                     'value.serializer': avro_serializer}
+
+    producer = SerializingProducer(producer_conf)
+
 
     avro_deserializer = AvroDeserializer(schema_enriched_event_str,schema_registry_client)
-    string_deserializer = StringDeserializer('utf_8')
 
     consumer_conf = {'bootstrap.servers': args.bootstrap_servers,
                      'key.deserializer': string_deserializer,
@@ -85,9 +106,9 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
-    cluster.register_user_type('datascience', 'acteurdeclen', ActeurDeclencheur)
-    cluster.register_user_type('datascience', 'dataheader', EventHeader)
-    cluster.register_user_type('datascience', 'dataenrich', EnrichedData)
+    # cluster.register_user_type('datascience', 'acteurdeclen', ActeurDeclencheur)
+    # cluster.register_user_type('datascience', 'dataheader', EventHeader)
+    # cluster.register_user_type('datascience', 'dataenrich', EnrichedData)
 
 
 
@@ -115,8 +136,8 @@ def main(args):
 
                     """
 
-            print(f"Query={query}")
-            print(evt)
+            # print(f"Query={query}")
+            # print(evt)
 
             eventId = evt["EventHeader"]["eventId"]
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
@@ -159,7 +180,7 @@ def main(args):
                                                                  True
                                                                  ))
                                 break
-                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                # print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
                 session.execute(query, (newEventHeader, newEnrichedData, eventBc, set(newEventContent)))
             else:
                 sch = schema_dict["fields"][1]["type"][1]["fields"]
@@ -190,13 +211,18 @@ def main(args):
                                                                  ))
                                 break
                 # print(len(newEventContent))
-                print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
+                # print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
                 session.execute(query, (newEventHeader, newEnrichedData, eventBc,  set(newEventContent)))
 
             elapsed_time = (time.time() - start)
             print(elapsed_time)
+
+
         except KeyboardInterrupt:
             break
+
+        producer.produce(topic=outputtopic, key=str(uuid4()), value={"event",elapsed_time}, on_delivery=delivery_report)
+        producer.flush()
 
     consumer.close()
 
@@ -214,5 +240,8 @@ if __name__ == '__main__':
                         help="Consumer group")
     parser.add_argument('-c', dest="host", required=True,
                         help="Cassandra host")
+
+    parser.add_argument('-o', dest="outputtopic", default="example_serde_avro",
+                        help="Topic name")
 
     main(parser.parse_args())
