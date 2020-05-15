@@ -1,42 +1,49 @@
 import argparse
 import random
 import time
+from uuid import uuid4
 
 from cassandra.cluster import Cluster
 from confluent_kafka import DeserializingConsumer
+from confluent_kafka import SerializingProducer
 from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringDeserializer
+from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EventSchema
-import fastavro
-import ast
+from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
+from cassandra.query import dict_factory
 
 
-class Datafield(object):
-    def __init__(self, name,value,datatype,isnullable):
-        self.name = name
-        self.value = value
-        self.datatype = datatype
-        self.isnullable = isnullable
+def delivery_report(err, msg):
+    if err is not None:
+        print("Delivery failed for Event {}: {}".format(msg.key(), err))
+        return
+    print('Event  {} successfully produced to {} [{}] at offset {}'.format(
+        msg.key(), msg.topic(), msg.partition(), msg.offset()))
+
 
 def main(args):
     topic = args.topic
+    outputtopic = args.outputtopic
 
     schema_str = EventSchema
-    schema_dict = ast.literal_eval(schema_str)
-    # print(schema_dict)
+    schema_enriched_event_str = EnrichedEventSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
 
-    avro_deserializer = AvroDeserializer(schema_str,schema_registry_client)
+    avro_deserializer = AvroDeserializer(schema_str, schema_registry_client)
     string_deserializer = StringDeserializer('utf_8')
+
+    avro_serializer = AvroSerializer(schema_enriched_event_str,
+                                     schema_registry_client)
 
     consumer_conf = {'bootstrap.servers': args.bootstrap_servers,
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
-                     'group.id': args.group+str(random.Random()),
+                     'group.id': args.group + str(random.Random()),
                      'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
@@ -44,9 +51,13 @@ def main(args):
 
     cluster = Cluster([args.host])
     session = cluster.connect("datascience")
+    session.row_factory = dict_factory
 
-    cluster.register_user_type('datascience', 'datafield', Datafield)
+    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
+                     'key.serializer': StringSerializer('utf_8'),
+                     'value.serializer': avro_serializer}
 
+    producer = SerializingProducer(producer_conf)
 
     while True:
         try:
@@ -56,102 +67,24 @@ def main(args):
             if msg is None:
                 continue
 
-            evt =  msg.value()
+            evt = msg.value()
 
-            # print(myFunc())
+            if evt is not None:
+                row = session.execute(GET_ENRICHED_DATA_QUERY, (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
 
-            query = f"""
-            insert into event (
-                        "eventid" ,
-                        "eventbc",
-                        "eventcontent"
-                        )
-                        VALUES (%s, %s, %s)
+                print("row =>", row)
+                if row:
+                    evt['EnrichedData'] = row
+                    #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
 
+                    producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
+                    producer.flush()
 
-                    """
-
-            # print(f"Query={query}")
-            # session.execute(query)
-            eventId = evt["EventHeader"]["eventId"]
-            eventBc = evt["EventBusinessContext"][0].replace("com.example.","")
-            eventContent = evt["EventBusinessContext"][1]
-
-            if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
-                # print(schema_dict["fields"][1]["type"][0]["fields"])
-                sch = schema_dict["fields"][1]["type"][0]["fields"]
-                newEventContent = []
-                for i in eventContent:
-                    for j in sch:
-                        if j["name"] == i:
-                            if j["type"] == 'string':
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-                            else:
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"][0],
-                                                                 True
-                                                                 ))
-                                break
-                # print(len(newEventContent))
-                session.execute(query, (eventId, eventBc, set(newEventContent)))
-            else:
-                sch = schema_dict["fields"][1]["type"][1]["fields"]
-                newEventContent = []
-                for i in eventContent:
-                    for j in sch:
-                        if j["name"] == i:
-                            if j["type"] == 'string':
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-                            elif j["type"] == 'int':
-                                newEventContent.append(Datafield(i,
-                                                                 str(eventContent[i]),
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-
-                            else :
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"][0],
-                                                                 True
-                                                                 ))
-                                break
-                # print(len(newEventContent))
-                # print(newEventContent[0].value, newEventContent[0].name, newEventContent[0].datatype, newEventContent[0].isnullable)
-                session.execute(query, (eventId, eventBc, set(newEventContent)))
-
-            elapsed_time = (time.time() - start)
-            print(elapsed_time)
-
-
-            # session.execute(query, (eventId, eventBc, eventContent))
-
-            # for i in eventContent:
-            #     print(i, eventContent[i])
-                # newEventContent = newEventContent.append(datafield(i))
-
-
-            # if evt is not None:
-            #     print(evt["EventBusinessContext"][1])
-                # print("evt ==>", evt["EventHeader"]["eventId"])
-                # print("evt ==>", evt["EventBusinessContext"][0])
-                # print(eventBc)
-
+                    print("Time spent ", time.time() - start)
 
 
         except KeyboardInterrupt:
+
             break
 
     consumer.close()
@@ -170,5 +103,8 @@ if __name__ == '__main__':
                         help="Consumer group")
     parser.add_argument('-c', dest="host", required=True,
                         help="Cassandra host")
+
+    parser.add_argument('-o', dest="outputtopic", default="example_serde_avro",
+                        help="Topic name")
 
     main(parser.parse_args())
