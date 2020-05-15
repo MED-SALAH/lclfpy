@@ -21,42 +21,42 @@ class Datafield(object):
         self.isnullable = isnullable
 
 class EnrichedData(object):
-    def __init__(self,datenaissance, paysresidence, paysnaissance, revenusannuel, csp):
+    def __init__(self,dateNaissance, paysResidence, paysNaissance, revenusAnnuel, csp):
         self.csp = csp
-        self.datenaissance = datenaissance
-        self.paysresidence = paysresidence
-        self.paysnaissance = paysnaissance
-        self.revenusannuel = revenusannuel
+        self.dateNaissance = dateNaissance
+        self.paysResidence = paysResidence
+        self.paysNaissance = paysNaissance
+        self.revenusAnnuel = revenusAnnuel
 
 
 class ActeurDeclencheur(object):
-    def __init__(self,adresseip = None, idtelematique = None, idpersonne = None):
-        self.adresseip = adresseip
-        self.idtelematique = idtelematique
-        self.idpersonne = idpersonne
+    def __init__(self,adresseIP = None, idTelematique = None, idPersonne = None):
+        self.adresseIP = adresseIP
+        self.idTelematique = idTelematique
+        self.idPersonne = idPersonne
 
 class EventHeader(object):
 
     def __init__(self,
-                 eventid = None,
-                 datetimeref = None,
-                 nomenclatureev = None,
+                 eventId = None,
+                 dateTimeRef = None,
+                 nomenclatureEv = None,
                  canal = None,
                  media = None,
-                 schemaversion = None,
-                 headerversion = None,
+                 schemaVersion = None,
+                 headerVersion = None,
                  serveur = None,
                  acteurdeclencheur = None
                  ):
         self.acteurdeclencheur = acteurdeclencheur
         self.serveur = serveur
-        self.headerversion = headerversion
-        self.schemaversion = schemaversion
+        self.headerVersion = headerVersion
+        self.schemaVersion = schemaVersion
         self.media = media
         self.canal = canal
-        self.eventid = eventid
-        self.nomenclatureev = nomenclatureev
-        self.datetimeref = datetimeref
+        self.eventId = eventId
+        self.nomenclatureEv = nomenclatureEv
+        self.dateTimeRef = dateTimeRef
 
 
 def main(args):
@@ -192,7 +192,6 @@ def main(args):
                 # print(len(newEventContent))
                 print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
                 session.execute(query, (newEventHeader, newEnrichedData, eventBc,  set(newEventContent)))
-
 
             elapsed_time = (time.time() - start)
             print(elapsed_time)
