@@ -79,24 +79,25 @@ def main(args):
                 if row:
                     evt['EnrichedData'] = row
                     #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                    eventHeader = evt["EventHeader"]
                     EnrichedEvent = {
-                        "eventId": evt["EventHeader"]["eventId"],
-                        "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
-                        "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
-                        "canal": evt["EventHeader"]["canal"],
-                        "media": evt["EventHeader"]["media"],
-                        "schemaVersion": evt["EventHeader"]["schemaVersion"],
-                        "headerVersion": evt["EventHeader"]["headerVersion"],
-                        "serveur": evt["EventHeader"]["serveur"],
-                        "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
-                        "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
-                        "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
-                         "dateNaissance" : row["dateNaissance"],
-                         "paysResidence": row["paysResidence"],
-                         "paysNaissance": row["paysNaissance"],
-                         "revenusAnnuel" : row["revenusAnnuel"],
-                         "csp": row["csp"],
-                         "EventBusinessContext": evt["EventBusinessContext"]
+                        "eventId": eventHeader["eventId"],
+                        "dateTimeRef": eventHeader["dateTimeRef"],
+                        "nomenclatureEv": eventHeader["nomenclatureEv"],
+                        "canal": eventHeader["canal"],
+                        "media": eventHeader["media"],
+                        "schemaVersion": eventHeader["schemaVersion"],
+                        "headerVersion": eventHeader["headerVersion"],
+                        "serveur": eventHeader["serveur"],
+                        "adresseIP": eventHeader["acteurDeclencheur"]["adresseIP"],
+                        "idTelematique": eventHeader["acteurDeclencheur"]["idTelematique"],
+                        "idPersonne": eventHeader["acteurDeclencheur"]["idPersonne"],
+                        "dateNaissance": row["dateNaissance"],
+                        "paysResidence": row["paysResidence"],
+                        "paysNaissance": row["paysNaissance"],
+                        "revenusAnnuel": row["revenusAnnuel"],
+                        "csp": row["csp"],
+                        "EventBusinessContext": evt["EventBusinessContext"]
                     }
                     print("donnée reçu ====>>>>",EnrichedEvent)
 

@@ -11,7 +11,7 @@ from confluent_kafka.schema_registry.avro import AvroSerializer
 from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EnrichedEventSchema
+from lclf.schemas.event_schema_all import EnrichedEventSchema, MetricSchema
 import fastavro
 import ast
 
@@ -31,64 +31,25 @@ class Datafield(object):
         self.datatype = datatype
         self.isnullable = isnullable
 
-class EnrichedData(object):
-    def __init__(self,datenaissance, paysresidence, paysnaissance, revenusannuel, csp):
-        self.csp = csp
-        self.revenusannuel = revenusannuel
-        self.paysnaissance = paysnaissance
-        self.paysresidence = paysresidence
-        self.datenaissance = datenaissance
-
-
-class ActeurDeclencheur(object):
-    def __init__(self,adresseip = None, idtelematique = None, idpersonne = None):
-        self.adresseip = adresseip
-        self.idtelematique = idtelematique
-        self.idpersonne = idpersonne
-
-class EventHeader(object):
-
-    def __init__(self,
-                 eventid = None,
-                 datetimeref = None,
-                 nomenclatureev = None,
-                 canal = None,
-                 media = None,
-                 schemaversion = None,
-                 headerversion = None,
-                 serveur = None,
-                 acteurdeclencheur = None
-                 ):
-        self.acteurdeclencheur = acteurdeclencheur
-        self.serveur = serveur
-        self.headerversion = headerversion
-        self.schemaversion = schemaversion
-        self.media = media
-        self.canal = canal
-        self.eventid = eventid
-        self.nomenclatureev = nomenclatureev
-        self.datetimeref = datetimeref
-
-
 def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
 
     schema_enriched_event_str = EnrichedEventSchema
     schema_dict = ast.literal_eval(schema_enriched_event_str)
-#    schema_metrics = MetricSchema
+    schema_metrics = MetricSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
     string_deserializer = StringDeserializer('utf_8')
 
-    # avro_serializer = AvroSerializer(schema_metrics,
-    #                                  schema_registry_client)
-    # producer_conf = {'bootstrap.servers': args.bootstrap_servers,
-    #                  'key.serializer': StringSerializer('utf_8'),
-    #                  'value.serializer': avro_serializer}
-    #
-    # producer = SerializingProducer(producer_conf)
+    avro_serializer = AvroSerializer(schema_metrics,
+                                     schema_registry_client)
+    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
+                     'key.serializer': StringSerializer('utf_8'),
+                     'value.serializer': avro_serializer}
+
+    producer = SerializingProducer(producer_conf)
 
 
     avro_deserializer = AvroDeserializer(schema_enriched_event_str,schema_registry_client)
@@ -106,9 +67,6 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
-    # cluster.register_user_type('datascience', 'acteurdeclen', ActeurDeclencheur)
-    # cluster.register_user_type('datascience', 'dataheader', EventHeader)
-    # cluster.register_user_type('datascience', 'dataenrich', EnrichedData)
 
 
 
@@ -124,22 +82,45 @@ def main(args):
 
             # print(myFunc())
 
+            # query = f"""
+            # insert into eventenrich (
+            #             "eventheader" ,
+            #             "enricheddata",
+            #             "eventbc",
+            #             "eventcontent"
+            #             )
+            #             VALUES (%s, %s, %s, %s)
+            #
+            #
+            #         """
             query = f"""
             insert into eventenrich (
-                        "eventheader" ,
-                        "enricheddata",
-                        "eventbc",
-                        "eventcontent"
+                        "eventId" ,
+                        "dateTimeRef",
+                        "nomenclatureEv",
+                        "canal",
+                        "media",
+                        "schemaVersion",
+                        "headerVersion",
+                        "serveur",
+                        "adresseIP",
+                        "idTelematique",
+                        "idPersonne",
+                        "dateNaissance",
+                        "paysResidence",
+                        "paysNaissance",
+                        "revenusAnnuel",
+                        "csp",
+                        "eventBC",
+                        "eventContent"
                         )
-                        VALUES (%s, %s, %s, %s)
-
-
+                        VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s)
                     """
 
             # print(f"Query={query}")
             # print(evt)
 
-            eventId = evt["EventHeader"]["eventId"]
+            # eventId = evt["EventHeader"]["eventId"]
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
@@ -148,20 +129,10 @@ def main(args):
             # eventHeader = evt["EventHeader"]
             #
             # enrichedData = evt["EnrichedData"]
-            #
-            # newActeurDeclencheur = ActeurDeclencheur(acteurDeclencheur["adresseIP"],acteurDeclencheur["idTelematique"],
-            #                                          acteurDeclencheur["idPersonne"])
-            #
-            # newEventHeader = EventHeader(eventHeader["eventId"],eventHeader["dateTimeRef"],eventHeader["nomenclatureEv"],
-            #                              eventHeader["canal"],eventHeader["media"],eventHeader["schemaVersion"],
-            #                              eventHeader["headerVersion"],eventHeader["serveur"],newActeurDeclencheur)
-            #
-            # newEnrichedData = EnrichedData(enrichedData["dateNaissance"],enrichedData["paysResidence"],
-            #                                enrichedData["paysNaissance"],enrichedData["revenusAnnuel"],
-            #                                enrichedData["csp"])
+            print(schema_dict["fields"][16]["type"][0]["name"])
 
-            if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
-                sch = schema_dict["fields"][1]["type"][0]["fields"]
+            if schema_dict["fields"][16]["type"][0]["name"] == eventBc:
+                sch = schema_dict["fields"][16]["type"][0]["fields"]
                 newEventContent = []
                 for i in eventContent:
                     for j in sch:
@@ -181,12 +152,13 @@ def main(args):
                                                                  ))
                                 break
 
+
                 session.execute(query, (evt["eventId"], evt["dateTimeRef"], evt["nomenclatureEv"], evt["canal"], evt["media"],
                                         evt["schemaVersion"], evt["headerVersion"], evt["serveur"], evt["adresseIP"], evt["idTelematique"],
                                         evt["idPersonne"], evt["dateNaissance"], evt["paysResidence"], evt["paysNaissance"],
                                         evt["revenusAnnuel"], evt["csp"], eventBc, set(newEventContent)))
             else:
-                sch = schema_dict["fields"][1]["type"][1]["fields"]
+                sch = schema_dict["fields"][16]["type"][1]["fields"]
                 newEventContent = []
                 for i in eventContent:
                     for j in sch:
@@ -229,8 +201,8 @@ def main(args):
         except KeyboardInterrupt:
             break
 
-        #producer.produce(topic=outputtopic, key=str(uuid4()), value={"event",elapsed_time}, on_delivery=delivery_report)
-        #producer.flush()
+        producer.produce(topic=outputtopic, value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
+        producer.flush()
 
     consumer.close()
 

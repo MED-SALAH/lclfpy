@@ -1683,9 +1683,7 @@ EventSchema = """{
   "type": "record"
 }"""
 
-EnrichedEventSchema = """
-
-{
+EnrichedEventSchema = """{
   "namespace" : "com.bnpparibas.dsibddf.event",
   "type" : "record",
   "name" : "EnrichedEvent",
@@ -2219,8 +2217,16 @@ EnrichedEventSchema = """
       ]
     }
   ]
-}
-"""
+}"""
+
+MetricSchema = """{
+"type" : "record",
+"name" : "metrics",
+    "fields" : [
+        {"name": "metricName", "type": "string"},
+        {"name": "time", "type": "float"}
+        ]
+}"""
 
 GET_ENRICHED_DATA_QUERY = """
 SELECT 
