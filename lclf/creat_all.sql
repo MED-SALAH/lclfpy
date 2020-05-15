@@ -6,7 +6,7 @@ CREATE TYPE acteurDeclen(
 
 CREATE TYPE dataheader (
   eventId text,
-  dateTimeRef timestamp,
+  dateTimeRef double,
   nomenclatureEv text,
   canal int,
   media int,
@@ -33,7 +33,7 @@ create table eventenrich(
 eventHeader frozen <dataheader> PRIMARY KEY,
 eventBC text,
 eventContent set<frozen <datafield>>,
-enrichedData frozen <dataEnrich>
+enrichedData set<frozen <dataEnrich>>
 );
 
 create table EventHeader(

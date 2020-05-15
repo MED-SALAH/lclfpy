@@ -21,44 +21,47 @@ class Datafield(object):
         self.isnullable = isnullable
 
 class EnrichedData(object):
-    def __init__(self,dateNaissance, paysResidence, paysNaissance, revenusAnnuel, csp):
+    def __init__(self,datenaissance, paysresidence, paysnaissance, revenusannuel, csp):
+        self.revenusannuel = revenusannuel
+        self.paysnaissance = paysnaissance
+        self.paysresidence = paysresidence
+        self.datenaissance = datenaissance
         self.csp = csp
-        self.revenusAnnuel = revenusAnnuel
-        self.paysNaissance = paysNaissance
-        self.paysResidence = paysResidence
-        self.dateNaissance = dateNaissance
+
 
 
 
 
 class ActeurDeclencheur(object):
-    def __init__(self,adresseIP = None, idTelematique = None, idPersonne = None):
-        self.adresseIP = adresseIP
-        self.idTelematique = idTelematique
-        self.idPersonne = idPersonne
+    def __init__(self,adresseip = None, idtelematique = None, idpersonne = None):
+        self.idpersonne = idpersonne
+        self.idtelematique = idtelematique
+        self.adresseip = adresseip
+
 
 class EventHeader(object):
 
     def __init__(self,
-                 eventId = None,
-                 dateTimeRef = None,
-                 nomenclatureEv = None,
-                 canal = None,
-                 media = None,
-                 schemaVersion = None,
-                 headerVersion = None,
-                 serveur = None,
-                 acteurDeclencheur = None
+                 eventid,
+                 datetimeref,
+                 nomenclatureev,
+                 canal,
+                 media,
+                 schemaversion,
+                 headerversion,
+                 serveur,
+                 acteurdeclencheur
                  ):
-        self.acteurDeclencheur = acteurDeclencheur
+        self.acteurdeclencheur = acteurdeclencheur
         self.serveur = serveur
-        self.headerVersion = headerVersion
-        self.schemaVersion = schemaVersion
+        self.headerversion = headerversion
+        self.schemaversion = schemaversion
         self.media = media
         self.canal = canal
-        self.eventId = eventId
-        self.nomenclatureEv = nomenclatureEv
-        self.dateTimeRef = dateTimeRef
+        self.nomenclatureev = nomenclatureev
+        self.datetimeref = datetimeref
+        self.eventid = eventid
+
 
 
 def main(args):
@@ -118,7 +121,7 @@ def main(args):
                     """
 
             # print(f"Query={query}")
-            print(evt)
+            # print(evt)
 
             eventId = evt["EventHeader"]["eventId"]
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
@@ -140,6 +143,7 @@ def main(args):
             newEnrichedData = EnrichedData(enrichedData["dateNaissance"],enrichedData["paysResidence"],
                                            enrichedData["paysNaissance"],enrichedData["revenusAnnuel"],
                                            enrichedData["csp"])
+
 
             if schema_dict["fields"][1]["type"][0]["name"] == eventBc:
                 sch = schema_dict["fields"][1]["type"][0]["fields"]
@@ -163,6 +167,7 @@ def main(args):
                                 break
                 print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
                 session.execute(query, (newEventHeader, newEnrichedData, eventBc, set(newEventContent)))
+
             else:
                 sch = schema_dict["fields"][1]["type"][1]["fields"]
                 newEventContent = []
@@ -197,7 +202,7 @@ def main(args):
 
 
             elapsed_time = (time.time() - start)
-            print(elapsed_time)
+            # print(elapsed_time)
         except KeyboardInterrupt:
             break
 
