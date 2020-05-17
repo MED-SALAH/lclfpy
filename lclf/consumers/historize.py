@@ -31,6 +31,7 @@ class Datafield(object):
         self.datatype = datatype
         self.isnullable = isnullable
 
+
 def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
@@ -78,7 +79,7 @@ def main(args):
             if msg is None:
                 continue
 
-            evt =  msg.value()
+            evt = msg.value()
 
             # print(myFunc())
 

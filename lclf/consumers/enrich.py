@@ -1,6 +1,8 @@
 import argparse
+import asyncio
 import random
 import time
+from functools import partial, wraps
 from uuid import uuid4
 
 from cassandra.cluster import Cluster
@@ -16,6 +18,9 @@ from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, Enrich
 from cassandra.query import dict_factory
 
 
+
+
+
 def delivery_report(err, msg):
     if err is not None:
         print("Delivery failed for Event {}: {}".format(msg.key(), err))
@@ -23,6 +28,15 @@ def delivery_report(err, msg):
     print('Event  {} successfully produced to {} [{}] at offset {}'.format(
         msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
+
+def async_wrap(func):
+    @wraps(func)
+    async def run(*args, loop=None, executor=None, **kwargs):
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        pfunc = partial(func, *args, **kwargs)
+        return await loop.run_in_executor(executor, pfunc)
+    return run
 
 def main(args):
     topic = args.topic
@@ -69,47 +83,45 @@ def main(args):
 
             evt = msg.value()
 
+            def enrich(evt):
+                if evt is not None:
+                    print("récupérer dans kafka")
+                    row = session.execute(GET_ENRICHED_DATA_QUERY,
+                                          (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+
+                    if row:
+                        evt['EnrichedData'] = row
+                        # evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                        EnrichedEvent = {
+                            "eventId": evt["EventHeader"]["eventId"],
+                            "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
+                            "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
+                            "canal": evt["EventHeader"]["canal"],
+                            "media": evt["EventHeader"]["media"],
+                            "schemaVersion": evt["EventHeader"]["schemaVersion"],
+                            "headerVersion": evt["EventHeader"]["headerVersion"],
+                            "serveur": evt["EventHeader"]["serveur"],
+                            "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
+                            "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
+                            "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
+                            "dateNaissance": row["dateNaissance"],
+                            "paysResidence": row["paysResidence"],
+                            "paysNaissance": row["paysNaissance"],
+                            "revenusAnnuel": row["revenusAnnuel"],
+                            "csp": row["csp"],
+                            "EventBusinessContext": evt["EventBusinessContext"]
+                        }
+
+                        producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent,
+                                         on_delivery=delivery_report)
+                        producer.flush()
+
+            enrich(evt)
 
 
-            if evt is not None:
-                print("récupérer dans kafka")
-                row = session.execute(GET_ENRICHED_DATA_QUERY, (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
-
-                print("row =>", row)
-                if row:
-                    evt['EnrichedData'] = row
-                    #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
-                    eventHeader = evt["EventHeader"]
-                    EnrichedEvent = {
-                        "eventId": eventHeader["eventId"],
-                        "dateTimeRef": eventHeader["dateTimeRef"],
-                        "nomenclatureEv": eventHeader["nomenclatureEv"],
-                        "canal": eventHeader["canal"],
-                        "media": eventHeader["media"],
-                        "schemaVersion": eventHeader["schemaVersion"],
-                        "headerVersion": eventHeader["headerVersion"],
-                        "serveur": eventHeader["serveur"],
-                        "adresseIP": eventHeader["acteurDeclencheur"]["adresseIP"],
-                        "idTelematique": eventHeader["acteurDeclencheur"]["idTelematique"],
-                        "idPersonne": eventHeader["acteurDeclencheur"]["idPersonne"],
-                        "dateNaissance": row["dateNaissance"],
-                        "paysResidence": row["paysResidence"],
-                        "paysNaissance": row["paysNaissance"],
-                        "revenusAnnuel": row["revenusAnnuel"],
-                        "csp": row["csp"],
-                        "EventBusinessContext": evt["EventBusinessContext"]
-                    }
-                    print("donnée reçu ====>>>>",EnrichedEvent)
-
-                    producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent, on_delivery=delivery_report)
-                    producer.flush()
-
-                    print("Time spent ", time.time() - start)
-
-
-        except KeyboardInterrupt:
-
-            break
+        except Exception:
+            print('Exception')
+            continue
 
     consumer.close()
 

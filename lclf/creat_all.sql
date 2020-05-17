@@ -86,17 +86,17 @@ csp text
 );
 
 create table event(
-eventId text  PRIMARY KEY,
-eventBC text,
-eventContent set<frozen <datafield>>
+"eventId" text  PRIMARY KEY,
+"eventBC" text,
+"eventContent" set<frozen <datafield>>
 );
 
 create table EventHeader(
-eventId text  PRIMARY KEY,
-dateTimeRef timestamp,
-nomenclatureEv text,
+"eventId" text  PRIMARY KEY,
+"dateTimeRef" timestamp,
+"nomenclatureEv" text,
 canal int, media int,
-schemaVersion text,
+"schemaVersion" text,
 "headerVersion" text,
 serveur text,
 "adresseIP" text,
