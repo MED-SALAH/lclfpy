@@ -83,9 +83,9 @@ def main(args):
                     print("Time spent ", time.time() - start)
 
 
-        except KeyboardInterrupt:
-
-            break
+        except Exception:
+            print('Exception')
+            continue
 
     consumer.close()
 

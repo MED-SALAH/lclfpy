@@ -2,7 +2,7 @@ import argparse
 import asyncio
 import random
 import time
-from functools import partial, wraps
+from functools import partial
 from uuid import uuid4
 
 from cassandra.cluster import Cluster
@@ -16,9 +16,6 @@ from confluent_kafka.serialization import StringSerializer
 from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
 from cassandra.query import dict_factory
-
-
-
 
 
 def delivery_report(err, msg):
@@ -38,7 +35,7 @@ def async_wrap(func):
         return await loop.run_in_executor(executor, pfunc)
     return run
 
-def main(args):
+async def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
 
@@ -84,39 +81,40 @@ def main(args):
             evt = msg.value()
 
             def enrich(evt):
-                if evt is not None:
-                    print("récupérer dans kafka")
-                    row = session.execute(GET_ENRICHED_DATA_QUERY,
-                                          (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+                print("récupérer dans kafka")
+                row = session.execute(GET_ENRICHED_DATA_QUERY,
+                                      (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
 
-                    if row:
-                        evt['EnrichedData'] = row
-                        # evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
-                        EnrichedEvent = {
-                            "eventId": evt["EventHeader"]["eventId"],
-                            "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
-                            "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
-                            "canal": evt["EventHeader"]["canal"],
-                            "media": evt["EventHeader"]["media"],
-                            "schemaVersion": evt["EventHeader"]["schemaVersion"],
-                            "headerVersion": evt["EventHeader"]["headerVersion"],
-                            "serveur": evt["EventHeader"]["serveur"],
-                            "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
-                            "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
-                            "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
-                            "dateNaissance": row["dateNaissance"],
-                            "paysResidence": row["paysResidence"],
-                            "paysNaissance": row["paysNaissance"],
-                            "revenusAnnuel": row["revenusAnnuel"],
-                            "csp": row["csp"],
-                            "EventBusinessContext": evt["EventBusinessContext"]
-                        }
+                if row:
+                    evt['EnrichedData'] = row
+                    # evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                    EnrichedEvent = {
+                        "eventId": evt["EventHeader"]["eventId"],
+                        "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
+                        "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
+                        "canal": evt["EventHeader"]["canal"],
+                        "media": evt["EventHeader"]["media"],
+                        "schemaVersion": evt["EventHeader"]["schemaVersion"],
+                        "headerVersion": evt["EventHeader"]["headerVersion"],
+                        "serveur": evt["EventHeader"]["serveur"],
+                        "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
+                        "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
+                        "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
+                        "dateNaissance": row["dateNaissance"],
+                        "paysResidence": row["paysResidence"],
+                        "paysNaissance": row["paysNaissance"],
+                        "revenusAnnuel": row["revenusAnnuel"],
+                        "csp": row["csp"],
+                        "EventBusinessContext": evt["EventBusinessContext"]
+                    }
 
-                        producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent,
-                                         on_delivery=delivery_report)
-                        producer.flush()
+                    producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent,
+                                     on_delivery=delivery_report)
+                    producer.flush()
 
-            enrich(evt)
+            async_enrich = async_wrap(enrich)
+            if evt is not None:
+                 await async_enrich(evt)
 
 
         except Exception:
@@ -143,4 +141,4 @@ if __name__ == '__main__':
     parser.add_argument('-o', dest="outputtopic", default="example_serde_avro",
                         help="Topic name")
 
-    main(parser.parse_args())
+    asyncio.run(main(parser.parse_args()))

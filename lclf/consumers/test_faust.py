@@ -3,6 +3,7 @@ import random
 
 import faust
 from confluent_kafka.serialization import StringDeserializer
+from faust import Table
 from faust.serializers import codecs
 from schema_registry.client import SchemaRegistryClient, schema as SCHEMA
 from schema_registry.serializers import FaustSerializer
@@ -1700,9 +1701,9 @@ def start():
         value_serializer='avro_event_codec'
     )
 
-    topic = app.topic(topic, schema=schema)
+    topic = app.topic(topic, schema=schema) #Kafka
 
-    table = app.Table('total_event2', default=int, partitions=1)
+    table: Table = app.Table('total_event2', default=int, partitions=1) #  total_event2 ==> RocksDB
 
     @app.agent(topic)
     async def myagent(stream):
@@ -1710,6 +1711,7 @@ def start():
             old = table[evt['EventHeader']['eventId']]
             print(f"value={evt}")
             print(f"old={old}")
+
             table[evt['EventHeader']['eventId']] +=1
 
     app.main()

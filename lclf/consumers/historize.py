@@ -31,7 +31,6 @@ class Datafield(object):
         self.datatype = datatype
         self.isnullable = isnullable
 
-
 def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
