@@ -2149,20 +2149,7 @@ EnrichedEventSchema = """{
             {"name": "idContrat", "type": "string"},
             {"name": "idPrestation", "type": "string"},
             {"name": "dateActivation",  "type": "long", "logicalType" : "timestamp-millis", "doc" : "Au format Timestamp UNIX"},
-            {"name" : "listeCartes",
-              "type" :{
-                "type" : "array",
-                "items":{
-                  "name": "carte",
-                  "type": "record",
-                  "fields":[
-                    {"name": "numeroCarte","type": "string"},
-                    {"name": "cartePreferentielle","type": "boolean"},
-                    {"name": "dateFinValidite","type": "string", "logicalType" : "date", "doc" : "Au format MM/AAAA"}
-                  ]
-                }
-              }
-            }
+            {"name" : "listeCartes", "type": "string"}
           ]
         },
         {

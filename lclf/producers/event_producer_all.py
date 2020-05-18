@@ -53,8 +53,18 @@ def main(args):
                   "modeValidation": 34,
                   "bicBeneficiaire": "code 23432543",
                   "idTmx": "code 23432543"
+                  },
+                 {"idContrat": "123",
+                  "idPrestation": "code 23432543",
+                  "dateActivation": "27/03/2020",
+                  "listeCartes": [{
+	                  "numeroCarte": "23432543",
+	                  "cartePreferentielle": "test",
+	                  "dateFinValidite": "23/07/2022"
+	                  }]
                   }]
-    for i in range(1000):
+
+    for i in range(2):
         x = random.choice([0, 1])
 
         eventHeader = {
@@ -72,11 +82,12 @@ def main(args):
                 "idPersonne": "zahir"
             }
         }
+        print(list_type[x])
         value = {
             "EventHeader": eventHeader,
             "EventBusinessContext": list_type[x]
         }
-        print(value)
+        # print(value)
         producer.produce(topic=topic, key=str(uuid4()), value=value, on_delivery=delivery_report)
         producer.flush()
 

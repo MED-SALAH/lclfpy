@@ -59,7 +59,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -80,6 +80,7 @@ def main(args):
                 continue
 
             evt = msg.value()
+            print(evt)
 
             # print(myFunc())
 
@@ -201,6 +202,7 @@ def main(args):
 
         except KeyboardInterrupt:
             break
+
 
         producer.produce(topic=outputtopic, value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
         producer.flush()

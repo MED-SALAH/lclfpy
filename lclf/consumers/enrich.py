@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import random
+import sys
 import time
 from functools import partial, wraps
 from uuid import uuid4
@@ -38,6 +39,31 @@ def async_wrap(func):
         return await loop.run_in_executor(executor, pfunc)
     return run
 
+
+def enrich(evt, session, producer, outputtopic):
+    row = session.execute(GET_ENRICHED_DATA_QUERY,(evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+    if row:
+        evt['EnrichedData'] = row
+        EnrichedEvent = {}
+        for k, v in evt.items():
+            # print(k, " ==> ", v)
+            if type(v) == tuple:
+                if v[0] == "com.bnpparibas.dsibddf.event.PaylibVADEventBusinessContext":
+                    print("Trouver")
+                else:
+                    EnrichedEvent[k] = v
+            else:
+                for a, b in v.items():
+                    if type(b) == dict:
+                        for s, d in b.items():
+                            EnrichedEvent[s] = d
+                    else:
+                        EnrichedEvent[a] = b
+        print("-----", EnrichedEvent)
+
+        producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent, on_delivery=delivery_report)
+        producer.flush()
+
 def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
@@ -58,7 +84,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group + str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -82,45 +108,10 @@ def main(args):
                 continue
 
             evt = msg.value()
-
-            def enrich(evt):
-                if evt is not None:
-                    print("récupérer dans kafka")
-                    row = session.execute(GET_ENRICHED_DATA_QUERY,
-                                          (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
-
-                    if row:
-                        evt['EnrichedData'] = row
-                        # evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
-                        EnrichedEvent = {
-                            "eventId": evt["EventHeader"]["eventId"],
-                            "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
-                            "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
-                            "canal": evt["EventHeader"]["canal"],
-                            "media": evt["EventHeader"]["media"],
-                            "schemaVersion": evt["EventHeader"]["schemaVersion"],
-                            "headerVersion": evt["EventHeader"]["headerVersion"],
-                            "serveur": evt["EventHeader"]["serveur"],
-                            "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
-                            "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
-                            "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
-                            "dateNaissance": row["dateNaissance"],
-                            "paysResidence": row["paysResidence"],
-                            "paysNaissance": row["paysNaissance"],
-                            "revenusAnnuel": row["revenusAnnuel"],
-                            "csp": row["csp"],
-                            "EventBusinessContext": evt["EventBusinessContext"]
-                        }
-
-                        producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent,
-                                         on_delivery=delivery_report)
-                        producer.flush()
-
-            enrich(evt)
-
+            enrich(evt, session, producer, outputtopic)
 
         except Exception:
-            print('Exception')
+            print('Exception', sys.exc_info()[0])
             continue
 
     consumer.close()
