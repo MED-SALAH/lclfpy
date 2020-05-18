@@ -64,7 +64,7 @@ def main(args):
 	                  }]
                   }]
 
-    for i in range(2):
+    for i in range(1000):
         x = random.choice([0, 1])
 
         eventHeader = {
