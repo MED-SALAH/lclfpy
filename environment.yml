@@ -11,3 +11,4 @@ dependencies:
     - python-schema-registry-client
     - cassandra-driver
     - avro
+    - influxdb
