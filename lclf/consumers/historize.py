@@ -15,7 +15,7 @@ from lclf.schemas.event_schema_all import EnrichedEventSchema, MetricSchema
 import fastavro
 import ast
 
-from lclf.utils.utils import enrich_db, Datafield
+from lclf.utils.utils import insert_enriched_event_to_cassandra, Datafield, transform_enriched_event_to_cassandra_model
 
 
 def delivery_report(err, msg):
@@ -101,7 +101,9 @@ def main(args):
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
-            enrich_db(evt,eventBc,schema_dict,eventContent,session,query)
+            transformed_event = transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, eventContent)
+
+            insert_enriched_event_to_cassandra(transformed_event, session, query)
 
             elapsed_time = (time.time() - start)
 

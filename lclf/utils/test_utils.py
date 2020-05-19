@@ -1,7 +1,14 @@
 
 
+def test_transform_enriched_event_to_cassandra_model():
+    #GIVEN
 
-def test():
+    #WHEN
+
+    #THEN
+    print('test_transform_enriched_event_to_cassandra_model')
+
+def test_flat_content():
     # GIVEN
     rightEventContext = dict()
 

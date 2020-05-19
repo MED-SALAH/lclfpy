@@ -20,7 +20,8 @@ def copy_keys(row, enrichedEvent):
 def flat_content(rightEventContext, paylibVADEventBusinessContextSchema):
 
 
-def enrich_db(evt, eventBc, schema_dict, eventContent, session, query):
+
+def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, eventContent):
     for v in schema_dict["fields"][16]["type"]:
         if v["name"] == eventBc:
             sch = v["fields"]
@@ -51,4 +52,8 @@ def enrich_db(evt, eventBc, schema_dict, eventContent, session, query):
             event_enrich = event_enrich + ((evt[k]),)
     event_enrich = event_enrich + (eventBc,)
     event_enrich = event_enrich + ((set(newEventContent)),)
-    session.execute(query, event_enrich)
+    return event_enrich
+
+def insert_enriched_event_to_cassandra(transformed_event, session, query):
+
+    session.execute(query, transformed_event)
