@@ -1,3 +1,4 @@
+import json
 from collections import namedtuple
 
 class Datafield(object):
@@ -18,7 +19,7 @@ def copy_keys(row, enrichedEvent):
         enrichedEvent[k] = row[k]
 
 def flat_content(rightEventContext, paylibVADEventBusinessContextSchema):
-
+     rightEventContext["listeCartes"] = json.dumps(rightEventContext["listeCartes"])
 
 
 def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, eventContent):

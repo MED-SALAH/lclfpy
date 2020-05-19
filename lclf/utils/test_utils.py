@@ -1,3 +1,7 @@
+import json
+
+from lclf.utils.utils import flat_content
+
 
 
 def test_transform_enriched_event_to_cassandra_model():
@@ -69,13 +73,23 @@ def test_flat_content():
           "type": "record"
         }
         """
+    eventContext = dict()
 
+    eventContext['idContrat'] = "AAA"
+    eventContext['idPrestation'] = "AAA"
+    eventContext['dateActivation'] = 1111111
+    eventContext['listeCartes'] = '[{"numeroCarte": "qsqsqs", "dateFinValidite": "06/2020"}]'
+
+    expected = eventContext
 
     #WHEN
-    result = flat_content
+    flat_content(rightEventContext,paylibVADEventBusinessContextSchema)
+    result = rightEventContext
 
     #THEN
-    print('')
+    print('result flat ===>',result)
+    print('result flat ===>', expected)
+    assert result == expected
 
 if __name__ == '__main__':
-    test
+    test_flat_content()
