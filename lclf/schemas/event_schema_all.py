@@ -1697,14 +1697,18 @@ EnrichedEventSchema = """{
           {"name": "schemaVersion",  "type": "string"},
           {"name": "headerVersion",  "type": "string"},
           {"name": "serveur",  "type": "string"},
+          
           {"name": "adresseIP",  "type": "string"},
           {"name": "idTelematique",  "type": "string"},
           {"name": "idPersonne",  "type": "string"},
+          
+          
           {"name": "dateNaissance", "type": "string"},
           {"name": "paysResidence", "type": "string"},
           {"name": "paysNaissance", "type": "string"},
           {"name": "revenusAnnuel", "type": "float"},
           {"name": "csp", "type": "string"},
+          
     {"name" : "EventBusinessContext",
       "type" : [
         {

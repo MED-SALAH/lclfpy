@@ -13,6 +13,13 @@ def toNametuple(className, dict_data):
     )(*tuple(map(lambda x: x if not isinstance(x, dict) else toNametuple(x), dict_data.values())))
 
 
+def copy_keys(row, enrichedEvent):
+    for k in row.keys():
+        enrichedEvent[k] = row[k]
+
+def flat_content(rightEventContext, paylibVADEventBusinessContextSchema):
+
+
 def enrich_db(evt, eventBc, schema_dict, eventContent, session, query):
     for v in schema_dict["fields"][16]["type"]:
         if v["name"] == eventBc:

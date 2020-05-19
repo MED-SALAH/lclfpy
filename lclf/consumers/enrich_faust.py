@@ -1,18 +1,71 @@
-
-import random
+import time
+from random import random
+from uuid import uuid4
 
 import faust
-from confluent_kafka.serialization import StringDeserializer
 from faust import Table
 from faust.serializers import codecs
-from schema_registry.client import SchemaRegistryClient, schema as SCHEMA
+
+
+from cassandra.cluster import Cluster
+from confluent_kafka import DeserializingConsumer
+from confluent_kafka import SerializingProducer
+from confluent_kafka.schema_registry import SchemaRegistryClient
+from confluent_kafka.schema_registry.avro import AvroSerializer
+from confluent_kafka.serialization import StringDeserializer
+from confluent_kafka.serialization import StringSerializer
+from schema_registry.client import SchemaRegistryClient as AvroSchemaRegistryClient
+from schema_registry.client.schema import AvroSchema
 from schema_registry.serializers import FaustSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EnrichedEventSchema
+from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
+from cassandra.query import dict_factory
+
+
+def delivery_report(err, msg):
+    if err is not None:
+        print("Delivery failed for Event {}: {}".format(msg.key(), err))
+        return
+    print('Event  {} successfully produced to {} [{}] at offset {}'.format(
+        msg.key(), msg.topic(), msg.partition(), msg.offset()))
+
+
+def enrich(producer, session, evt, outputtopic, delivery_report):
+
+                row = session.execute(GET_ENRICHED_DATA_QUERY,
+                                      (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+                if row:
+                    evt['EnrichedData'] = row
+                    enrichedEvent = {
+                        "eventId": evt["EventHeader"]["eventId"],
+                        "dateTimeRef": evt["EventHeader"]["dateTimeRef"],
+                        "nomenclatureEv": evt["EventHeader"]["nomenclatureEv"],
+                        "canal": evt["EventHeader"]["canal"],
+                        "media": evt["EventHeader"]["media"],
+                        "schemaVersion": evt["EventHeader"]["schemaVersion"],
+                        "headerVersion": evt["EventHeader"]["headerVersion"],
+                        "serveur": evt["EventHeader"]["serveur"],
+                        "adresseIP": evt["EventHeader"]["acteurDeclencheur"]["adresseIP"],
+                        "idTelematique": evt["EventHeader"]["acteurDeclencheur"]["idTelematique"],
+                        "idPersonne": evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],
+                        "dateNaissance": row["dateNaissance"],
+                        "paysResidence": row["paysResidence"],
+                        "paysNaissance": row["paysNaissance"],
+                        "revenusAnnuel": row["revenusAnnuel"],
+                        "csp": row["csp"],
+                        "EventBusinessContext": evt["EventBusinessContext"]
+                    }
+
+                    print(f'EnrichedEvent={enrichedEvent}')
+
+                    producer.produce(topic=outputtopic, key=str(uuid4()), value=enrichedEvent,
+                                     on_delivery=delivery_report)
+                    producer.flush()
 
 
 def start():
+
     EventSchema = {
         "doc": "fields[1] représente le header de l'evenement, fields[2] représente la partie businessContext",
         "fields": [
@@ -1679,11 +1732,11 @@ def start():
         "type": "record"
     }
 
-    client = SchemaRegistryClient(url="http://35.180.127.210:8081")
+    client = AvroSchemaRegistryClient(url="http://35.180.127.210:8081")
 
     # schema that we want to use. For this example we
     # are using a dict, but this schema could be located in a file called avro_user_schema.avsc
-    avro_event_schema = SCHEMA.AvroSchema(EventSchema)
+    avro_event_schema = AvroSchema(EventSchema)
 
     avro_event_serializer = FaustSerializer(client, "events", avro_event_schema)
 
@@ -1695,24 +1748,52 @@ def start():
 
     topic = "event_ma_banque"
 
-    app = faust.App('myapp', broker="35.180.127.210:9092")
+    app = faust.App('myapp',
+                    broker_consumer='kafka://35.180.127.210:9092',
+                    broker_producer='kafka://35.180.127.210:9092')
 
     schema = faust.Schema(
         value_serializer='avro_event_codec'
     )
 
-    topic = app.topic(topic, schema=schema) #Kafka
+    topic = app.topic(topic, schema=schema)
 
-    table: Table = app.Table('total_event2', default=int, partitions=1) #  total_event2 ==> RocksDB
+    table: Table = app.Table('total_event2', default=int, partitions=1)
+
+    cluster = Cluster(["35.181.155.182"])
+    session = cluster.connect("datascience")
+    session.row_factory = dict_factory
+
+    schema_enriched_event_str = EnrichedEventSchema
+    sr_conf = {'url': "http://35.180.127.210:8081"}
+    schema_registry_client = SchemaRegistryClient(sr_conf)
+    avro_serializer = AvroSerializer(schema_enriched_event_str,
+                                     schema_registry_client)
+
+    producer_conf = {'bootstrap.servers': "35.180.127.210:9092",
+                     'key.serializer': StringSerializer('utf_8'),
+                     'value.serializer': avro_serializer}
+
+    producer = SerializingProducer(producer_conf)
 
     @app.agent(topic)
     async def myagent(stream):
         async for evt in stream:
-            old = table[evt['EventHeader']['eventId']]
-            print(f"value={evt}")
-            print(f"old={old}")
+            start = time.time()
+            idPersonne = evt['EventHeader']['acteurDeclencheur']['idPersonne']
 
-            table[evt['EventHeader']['eventId']] +=1
+            oldCount = table[idPersonne]
+
+            print(f"value={evt}")
+            print(f"old={oldCount}")
+
+
+            yield enrich(producer=producer, session=session, evt=evt, outputtopic="enriched_event_ma_banque", delivery_report=delivery_report)
+
+            table[idPersonne] += 1
+            delta = time.time() - start
+            print(f"delta = {delta}")
+
 
     app.main()
 if __name__ == '__main__':

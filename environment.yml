@@ -12,3 +12,5 @@ dependencies:
     - cassandra-driver
     - avro
     - influxdb
+    - python-rocksdb
+    - aiomonitor==0.4.4

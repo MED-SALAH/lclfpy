@@ -18,8 +18,7 @@ from lclf.custom.avro import AvroDeserializer
 from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
 from cassandra.query import dict_factory
 
-
-
+from lclf.utils.utils import copy_keys, flat_content
 
 
 def delivery_report(err, msg):
@@ -41,27 +40,85 @@ def async_wrap(func):
 
 
 def enrich(evt, session, producer, outputtopic):
-    row = session.execute(GET_ENRICHED_DATA_QUERY,(evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+    idPers = evt["EventHeader"]["acteurDeclencheur"]["idPersonne"]
+
+    row = session.execute(GET_ENRICHED_DATA_QUERY,(idPers,)).one()
     if row:
         evt['EnrichedData'] = row
-        EnrichedEvent = {}
-        for k, v in evt.items():
-            # print(k, " ==> ", v)
-            if type(v) == tuple:
-                if v[0] == "com.bnpparibas.dsibddf.event.PaylibVADEventBusinessContext":
-                    print("Trouver")
-                else:
-                    EnrichedEvent[k] = v
-            else:
-                for a, b in v.items():
-                    if type(b) == dict:
-                        for s, d in b.items():
-                            EnrichedEvent[s] = d
-                    else:
-                        EnrichedEvent[a] = b
-        print("-----", EnrichedEvent)
 
-        producer.produce(topic=outputtopic, key=str(uuid4()), value=EnrichedEvent, on_delivery=delivery_report)
+        eventHeader = evt['EventHeader']
+        acteurDeclencheur = eventHeader["acteurDeclencheur"]
+
+        enrichedEvent = eventHeader
+
+        enrichedEvent['adresseIP'] = acteurDeclencheur["adresseIP"]
+        enrichedEvent['idPersonne'] = acteurDeclencheur["idPersonne"]
+        enrichedEvent['idTelematique'] = acteurDeclencheur["idTelematique"]
+
+        copy_keys(row, enrichedEvent)
+
+        eventName = evt['EventBusinessContext'][0]
+        eventContext = evt['EventBusinessContext'][1]
+        paylibVADEventBusinessContextSchema = """
+        {
+          "doc": "Schéma pour l'événement 0001D00000000014J PAYLIB-ACTIVATION-VAD",
+          "fields": [
+            {
+              "name": "idContrat",
+              "type": "string"
+            },
+            {
+              "name": "idPrestation",
+              "type": "string"
+            },
+            {
+              "doc": "Au format Timestamp UNIX",
+              "logicalType": "timestamp-millis",
+              "name": "dateActivation",
+              "type": "long"
+            },
+            {
+              "name": "listeCartes",
+              "type": {
+                "items": {
+                  "fields": [
+                    {
+                      "name": "numeroCarte",
+                      "type": "string"
+                    },
+                    {
+                      "name": "cartePreferentielle",
+                      "type": "boolean"
+                    },
+                    {
+                      "doc": "Au format MM/AAAA",
+                      "logicalType": "date",
+                      "name": "dateFinValidite",
+                      "type": "string"
+                    }
+                  ],
+                  "name": "carte",
+                  "type": "record"
+                },
+                "type": "array"
+              }
+            }
+          ],
+          "name": "PaylibVADEventBusinessContext",
+          "type": "record"
+        }
+        """
+
+        flatten_event = eventContext
+
+        if(eventName.__contains__("PaylibVADEventBusinessContext")):
+            flatten_event = flat_content(eventContext, paylibVADEventBusinessContextSchema)
+
+        copy_keys(flatten_event, enrichedEvent)
+
+        enrichedEvent['EventBusinessContext'] = eventContext
+
+        producer.produce(topic=outputtopic, key=str(uuid4()), value=enrichedEvent, on_delivery=delivery_report)
         producer.flush()
 
 def main(args):

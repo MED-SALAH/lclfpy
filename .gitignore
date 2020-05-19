@@ -2,3 +2,5 @@
 env
 .idea
 **/__pycache__
+lclf/consumers/myapp-data*
+
