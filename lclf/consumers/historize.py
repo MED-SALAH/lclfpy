@@ -15,6 +15,8 @@ from lclf.schemas.event_schema_all import EnrichedEventSchema, MetricSchema
 import fastavro
 import ast
 
+from lclf.utils.utils import enrich_db, Datafield
+
 
 def delivery_report(err, msg):
     if err is not None:
@@ -24,12 +26,6 @@ def delivery_report(err, msg):
         msg.key(), msg.topic(), msg.partition(), msg.offset()))
 
 
-class Datafield(object):
-    def __init__(self, name,value,datatype,isnullable):
-        self.name = name
-        self.value = value
-        self.datatype = datatype
-        self.isnullable = isnullable
 
 def main(args):
     topic = args.topic
@@ -58,7 +54,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -67,8 +63,6 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
-
-
 
     while True:
         try:
@@ -79,21 +73,7 @@ def main(args):
                 continue
 
             evt = msg.value()
-            print(evt)
 
-            # print(myFunc())
-
-            # query = f"""
-            # insert into eventenrich (
-            #             "eventheader" ,
-            #             "enricheddata",
-            #             "eventbc",
-            #             "eventcontent"
-            #             )
-            #             VALUES (%s, %s, %s, %s)
-            #
-            #
-            #         """
             query = f"""
             insert into eventenrich (
                         "eventId" ,
@@ -118,90 +98,15 @@ def main(args):
                         VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s)
                     """
 
-            # print(f"Query={query}")
-            # print(evt)
-
-            # eventId = evt["EventHeader"]["eventId"]
             eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
-            # acteurDeclencheur = evt["EventHeader"]["acteurDeclencheur"]
-            #
-            # eventHeader = evt["EventHeader"]
-            #
-            # enrichedData = evt["EnrichedData"]
-            print(schema_dict["fields"][16]["type"][0]["name"])
-
-            if schema_dict["fields"][16]["type"][0]["name"] == eventBc:
-                sch = schema_dict["fields"][16]["type"][0]["fields"]
-                newEventContent = []
-                for i in eventContent:
-                    for j in sch:
-                        if j["name"] == i:
-                            if j["type"] == 'string':
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-                            else:
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"][0],
-                                                                 True
-                                                                 ))
-                                break
-
-
-                session.execute(query, (evt["eventId"], evt["dateTimeRef"], evt["nomenclatureEv"], evt["canal"], evt["media"],
-                                        evt["schemaVersion"], evt["headerVersion"], evt["serveur"], evt["adresseIP"], evt["idTelematique"],
-                                        evt["idPersonne"], evt["dateNaissance"], evt["paysResidence"], evt["paysNaissance"],
-                                        evt["revenusAnnuel"], evt["csp"], eventBc, set(newEventContent)))
-            else:
-                sch = schema_dict["fields"][16]["type"][1]["fields"]
-                newEventContent = []
-                for i in eventContent:
-                    for j in sch:
-                        if j["name"] == i:
-                            if j["type"] == 'string':
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-                            elif j["type"] == 'int':
-                                newEventContent.append(Datafield(i,
-                                                                 str(eventContent[i]),
-                                                                 j["type"],
-                                                                 False
-                                                                 ))
-                                break
-
-                            else :
-                                newEventContent.append(Datafield(i,
-                                                                 eventContent[i],
-                                                                 j["type"][0],
-                                                                 True
-                                                                 ))
-                                break
-                # print(len(newEventContent))
-                # print(newEventHeader, newEnrichedData, eventBc, set(newEventContent))
-
-                session.execute(query, (evt["eventId"], evt["dateTimeRef"], evt["nomenclatureEv"], evt["canal"], evt["media"],
-                                 evt["schemaVersion"], evt["headerVersion"], evt["serveur"], evt["adresseIP"],
-                                 evt["idTelematique"],evt["idPersonne"], evt["dateNaissance"], evt["paysResidence"],
-                                 evt["paysNaissance"], evt["revenusAnnuel"], evt["csp"], eventBc, set(newEventContent)))
-
+            enrich_db(evt,eventBc,schema_dict,eventContent,session,query)
 
             elapsed_time = (time.time() - start)
-            print(elapsed_time)
-
 
         except KeyboardInterrupt:
             break
-
 
         producer.produce(topic=outputtopic, value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
         producer.flush()
