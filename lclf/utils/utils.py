@@ -23,7 +23,8 @@ def flat_content(rightEventContext, paylibVADEventBusinessContextSchema):
 
 
 def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, eventContent):
-    for v in schema_dict["fields"][16]["type"]:
+    sch = []
+    for v in schema_dict["fields"][17]["type"]:
         if v["name"] == eventBc:
             sch = v["fields"]
             break
@@ -51,8 +52,9 @@ def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, event
     for k in evt.keys():
         if type(evt[k]) != tuple:
             event_enrich = event_enrich + ((evt[k]),)
-    event_enrich = event_enrich + (eventBc,)
+    #event_enrich = event_enrich + (eventBc,)
     event_enrich = event_enrich + ((set(newEventContent)),)
+    print(event_enrich)
     return event_enrich
 
 def insert_enriched_event_to_cassandra(transformed_event, session, query):

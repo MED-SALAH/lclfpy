@@ -1708,6 +1708,7 @@ EnrichedEventSchema = """{
           {"name": "paysNaissance", "type": "string"},
           {"name": "revenusAnnuel", "type": "float"},
           {"name": "csp", "type": "string"},
+          {"name": "eventBC", "type": "string"},
           
     {"name" : "EventBusinessContext",
       "type" : [

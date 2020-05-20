@@ -54,7 +54,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "latest"}
+                     'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -98,7 +98,8 @@ def main(args):
                         VALUES (%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s, %s, %s,%s, %s)
                     """
 
-            eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
+            #eventBc = evt["EventBusinessContext"][0].replace("com.bnpparibas.dsibddf.event.","")
+            eventBc = evt["eventBC"].replace("com.bnpparibas.dsibddf.event.","")
             eventContent = evt["EventBusinessContext"][1]
 
             transformed_event = transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, eventContent)

@@ -55,9 +55,11 @@ def enrich(evt, session, producer, outputtopic):
         enrichedEvent['idPersonne'] = acteurDeclencheur["idPersonne"]
         enrichedEvent['idTelematique'] = acteurDeclencheur["idTelematique"]
 
+
         copy_keys(row, enrichedEvent)
 
-        eventName = evt['EventBusinessContext'][0]
+        eventName = evt['EventBusinessContext'][0].replace("com.bnpparibas.dsibddf.event.","")
+        enrichedEvent['eventBC'] = eventName
         eventContext = evt['EventBusinessContext'][1]
         paylibVADEventBusinessContextSchema = """
         {
