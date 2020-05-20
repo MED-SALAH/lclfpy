@@ -54,6 +54,7 @@ def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, event
             event_enrich = event_enrich + ((evt[k]),)
     #event_enrich = event_enrich + (eventBc,)
     event_enrich = event_enrich + ((set(newEventContent)),)
+    print ("set(newEventContent",newEventContent)
     print(event_enrich)
     return event_enrich
 
