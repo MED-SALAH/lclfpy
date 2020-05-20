@@ -54,7 +54,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -108,8 +108,9 @@ def main(args):
 
             elapsed_time = (time.time() - start)
 
-        except KeyboardInterrupt:
-            break
+        except Exception as e:
+            print(f"Exception => {e}")
+            continue
 
         producer.produce(topic=outputtopic, value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
         producer.flush()

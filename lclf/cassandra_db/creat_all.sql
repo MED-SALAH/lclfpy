@@ -18,14 +18,12 @@ create table eventenrich(
   "adresseIP" text,
   "idTelematique" text,
   "idPersonne" text,
-  "dateNaissance" text,
-  "paysResidence" text,
-  "paysNaissance" text,
-  "revenusAnnuel" float,
-  "csp" text,
+  "enrichedData" set<frozen <datafield>>,
   "eventBC" text,
   "eventContent" set<frozen <datafield>>,
   PRIMARY KEY ("idPersonne","dateTimeRef")
+
+
 );
 
 

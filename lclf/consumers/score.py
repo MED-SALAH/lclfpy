@@ -52,7 +52,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group + str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -73,7 +73,19 @@ def main(args):
 
             rows = session.execute(GET_ENRICHED_EVENT_QUERY, (evt["idPersonne"],))
             if rows:
+                print(f"rows={rows.all().__len__()}")
                 stat_rocess(rows)
+
+                row["csp"] = get_value_column_enriched_data(row, "csp")
+                row["paysNaissance"] = get_value_column_enriched_data(row, "paysNaissance")
+
+
+                #get_value_column_event_content
+                row['appVersion'] = get_value_column_event_content(row, "appVersion")
+                row['montant'] = get_value_column_event_content(row, "montant")
+                row['androidID'] = get_value_column_event_content(row, "androidID")
+
+                del rows[0]['eventContent']
 
                 time_spent = time.time() - start
 

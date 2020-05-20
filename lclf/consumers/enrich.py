@@ -143,7 +143,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group + str(random.Random()),
-                     'auto.offset.reset': "earliest"}
+                     'auto.offset.reset': "latest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
