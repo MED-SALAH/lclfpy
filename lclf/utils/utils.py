@@ -61,3 +61,7 @@ def transform_enriched_event_to_cassandra_model(evt, eventBc, schema_dict, event
 def insert_enriched_event_to_cassandra(transformed_event, session, query):
 
     session.execute(query, transformed_event)
+
+def stat_rocess(rows):
+    for row in rows:
+        print(row)

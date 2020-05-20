@@ -12,8 +12,11 @@ from confluent_kafka.serialization import StringDeserializer
 from confluent_kafka.serialization import StringSerializer
 
 from lclf.custom.avro import AvroDeserializer
-from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY
+from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, EnrichedEventSchema, GET_ENRICHED_DATA_QUERY, \
+    GET_ENRICHED_EVENT_QUERY, MetricSchema
 from cassandra.query import dict_factory
+
+from lclf.utils.utils import stat_rocess
 
 
 def delivery_report(err, msg):
@@ -28,17 +31,22 @@ def main(args):
     topic = args.topic
     outputtopic = args.outputtopic
 
-    schema_str = EventSchema
     schema_enriched_event_str = EnrichedEventSchema
+    schema_metrics = MetricSchema
 
     sr_conf = {'url': args.schema_registry}
     schema_registry_client = SchemaRegistryClient(sr_conf)
-
-    avro_deserializer = AvroDeserializer(schema_str, schema_registry_client)
     string_deserializer = StringDeserializer('utf_8')
 
-    avro_serializer = AvroSerializer(schema_enriched_event_str,
+    avro_serializer = AvroSerializer(schema_metrics,
                                      schema_registry_client)
+    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
+                     'key.serializer': StringSerializer('utf_8'),
+                     'value.serializer': avro_serializer}
+
+    producer = SerializingProducer(producer_conf)
+
+    avro_deserializer = AvroDeserializer(schema_enriched_event_str, schema_registry_client)
 
     consumer_conf = {'bootstrap.servers': args.bootstrap_servers,
                      'key.deserializer': string_deserializer,
@@ -53,12 +61,6 @@ def main(args):
     session = cluster.connect("datascience")
     session.row_factory = dict_factory
 
-    producer_conf = {'bootstrap.servers': args.bootstrap_servers,
-                     'key.serializer': StringSerializer('utf_8'),
-                     'value.serializer': avro_serializer}
-
-    producer = SerializingProducer(producer_conf)
-
     while True:
         try:
             # SIGINT can't be handled when polling, limit timeout to 1 second.
@@ -69,18 +71,16 @@ def main(args):
 
             evt = msg.value()
 
-            if evt is not None:
-                row = session.execute(GET_ENRICHED_DATA_QUERY, (evt["EventHeader"]["acteurDeclencheur"]["idPersonne"],)).one()
+            rows = session.execute(GET_ENRICHED_EVENT_QUERY, (evt["idPersonne"],))
+            if rows:
+                stat_rocess(rows)
 
-                print("row =>", row)
-                if row:
-                    evt['EnrichedData'] = row
-                    #evt['EventBusinessContext'] = evt["EventBusinessContext"][1]
+                time_spent = time.time() - start
 
-                    producer.produce(topic=outputtopic, key=str(uuid4()), value=evt, on_delivery=delivery_report)
-                    producer.flush()
+                #producer.produce(topic=outputtopic, key=str(uuid4()), value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
+                #producer.flush()
 
-                    print("Time spent ", time.time() - start)
+
 
 
         except Exception:

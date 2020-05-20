@@ -2220,17 +2220,11 @@ MetricSchema = """{
         ]
 }"""
 
-GET_ENRICHED_DATA_QUERY = """
-SELECT 
-                dateNaissance as "dateNaissance" , 
-                paysResidence as "paysResidence", 
-                paysNaissance as "paysNaissance", 
-                revenusAnnuel as "revenusAnnuel", 
-                csp  
-                FROM person WHERE idPersonne = %s
+GET_ENRICHED_EVENT_QUERY = """
+SELECT * FROM eventenrich WHERE "idPersonne" = %s
 """
 
-GET_ENRICHED_EVENT_QUERY = """
+GET_ENRICHED_DATA_QUERY = """
 SELECT 
                 dateNaissance as "dateNaissance" , 
                 paysResidence as "paysResidence", 
