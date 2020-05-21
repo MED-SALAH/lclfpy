@@ -62,6 +62,27 @@ def insert_enriched_event_to_cassandra(transformed_event, session, query):
 
     session.execute(query, transformed_event)
 
-def stat_rocess(rows):
+def stat_process(idPersonne, rows):
+    # mean = mean(len(rows))
+    # print(mean)
+    print(type(rows))
+
+    # list = []
+    timestamp = rows[0]["dateTimeRef"]
+    delta = 0
+
     for row in rows:
-        print(row)
+        delta = delta + row["dateTimeRef"]-timestamp
+        # list.append(val)
+        print(delta)
+
+        timestamp = row["dateTimeRef"]
+    moyen = delta/({rows.all().__len__()})
+    print(idPersonne, moyen)
+
+def rec_process( rows, some, indice) :
+    if rows[indice + 1]:
+        some = some + rows[indice + 1]["dateTimeRef"] - rows.one()["dateTimeRef"]
+        rec_process(rows,some,indice + 1)
+    return some
+

@@ -16,6 +16,9 @@ import fastavro
 import ast
 
 from lclf.utils.utils import insert_enriched_event_to_cassandra, Datafield, transform_enriched_event_to_cassandra_model
+from influxdb import InfluxDBClient
+
+
 
 
 def delivery_report(err, msg):
@@ -54,7 +57,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group+str(random.Random()),
-                     'auto.offset.reset': "latest"}
+                     'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -63,6 +66,10 @@ def main(args):
     session = cluster.connect("datascience")
 
     cluster.register_user_type('datascience', 'datafield', Datafield)
+
+    client_influxdb = InfluxDBClient('35.181.155.182', 8086, "dbsaleh2")
+    # client_influxdb = InfluxDBClient(url="http://35.181.155.182:8086 , "mydb")
+
 
     while True:
         try:
@@ -112,6 +119,24 @@ def main(args):
             print(f"Exception => {e}")
             continue
 
+        query = 'SELECT * FROM metrics'
+        result = client_influxdb.query(query, database="dbsaleh2")
+        print(result)
+
+        data=[]
+
+        print(elapsed_time)
+        metrics = [{
+            "measurement": "metrics",
+            "fields":{
+                "metricName" : "hystorize",
+                "timeforhystorize": elapsed_time
+            }
+        }]
+        data.append(metrics)
+
+        # client_influxdb.write_points("hystorize",elapsed_time, database="dbsaleh2")
+        client_influxdb.write_points(metrics, database="dbsaleh2")
         producer.produce(topic=outputtopic, value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
         producer.flush()
 

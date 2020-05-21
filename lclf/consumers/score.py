@@ -16,7 +16,8 @@ from lclf.schemas.event_schema_all import EventSchema, EventHeaderSchema, Enrich
     GET_ENRICHED_EVENT_QUERY, MetricSchema
 from cassandra.query import dict_factory
 
-from lclf.utils.utils import stat_rocess
+from lclf.utils.utils import stat_process, rec_process
+from influxdb import InfluxDBClient
 
 
 def delivery_report(err, msg):
@@ -52,7 +53,7 @@ def main(args):
                      'key.deserializer': string_deserializer,
                      'value.deserializer': avro_deserializer,
                      'group.id': args.group + str(random.Random()),
-                     'auto.offset.reset': "latest"}
+                     'auto.offset.reset': "earliest"}
 
     consumer = DeserializingConsumer(consumer_conf)
     consumer.subscribe([topic])
@@ -60,6 +61,9 @@ def main(args):
     cluster = Cluster([args.host])
     session = cluster.connect("datascience")
     session.row_factory = dict_factory
+
+    client_influxdb = InfluxDBClient('35.181.155.182', 8086, "dbsaleh2")
+
 
     while True:
         try:
@@ -71,23 +75,28 @@ def main(args):
 
             evt = msg.value()
 
-            rows = session.execute(GET_ENRICHED_EVENT_QUERY, (evt["idPersonne"],))
+            idPersonne = evt["idPersonne"]
+
+            rows = session.execute(GET_ENRICHED_EVENT_QUERY, (idPersonne,))
             if rows:
-                print(f"rows={rows.all().__len__()}")
-                stat_rocess(rows)
+                # print(idPersonne, f"rows={rows.all().__len__()}")
+                # stat_process(idPersonne, rows)
+                # som = rec_process(rows,0,0)
+                # print("some", som)
 
-                row["csp"] = get_value_column_enriched_data(row, "csp")
-                row["paysNaissance"] = get_value_column_enriched_data(row, "paysNaissance")
+                # row["csp"] = get_value_column_enriched_data(row, "csp")
+                # row["paysNaissance"] = get_value_column_enriched_data(row, "paysNaissance")
+                #
+                #
+                # #get_value_column_event_content
+                # row['appVersion'] = get_value_column_event_content(row, "appVersion")
+                # row['montant'] = get_value_column_event_content(row, "montant")
+                # row['androidID'] = get_value_column_event_content(row, "androidID")
 
+                # del rows[0]['eventContent']
 
-                #get_value_column_event_content
-                row['appVersion'] = get_value_column_event_content(row, "appVersion")
-                row['montant'] = get_value_column_event_content(row, "montant")
-                row['androidID'] = get_value_column_event_content(row, "androidID")
+                elapsed_time = time.time() - start
 
-                del rows[0]['eventContent']
-
-                time_spent = time.time() - start
 
                 #producer.produce(topic=outputtopic, key=str(uuid4()), value={'metricName':"hystorize",'time':elapsed_time}, on_delivery=delivery_report)
                 #producer.flush()
@@ -95,9 +104,25 @@ def main(args):
 
 
 
+
+
         except Exception:
             print('Exception')
             continue
+
+        metrics = [{
+            "measurement": "metrics",
+            "fields": {
+                "metricName": "score",
+                "timeforscore": elapsed_time
+            }
+        }]
+        print(elapsed_time)
+
+        client_influxdb.write_points(metrics, database="dbsaleh2")
+        producer.produce(topic=outputtopic, value={'metricName': "score", 'time': elapsed_time},
+                         on_delivery=delivery_report)
+        producer.flush()
 
     consumer.close()
 
